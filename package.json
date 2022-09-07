@@ -1,0 +1,44 @@
+{
+  "name": "ffl",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "@emotion/react": "^11.10.4",
+    "@emotion/styled": "^11.10.4",
+    "@mui/material": "^5.10.3",
+    "@types/katex": "^0.14.0",
+    "@types/lodash": "^4.14.184",
+    "@types/rewire": "^2.5.28",
+    "katex": "^0.16.2",
+    "lodash": "^4.17.21",
+    "peggy": "^2.0.1",
+    "ts-pegjs": "^2.1.0",
+    "typescript": "^4.8.2"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.18.10",
+    "@babel/core": "^7.18.13",
+    "@babel/preset-flow": "^7.18.6",
+    "@types/node": "^18.7.14",
+    "flow-bin": "^0.185.2"
+  },
+  "scripts": {
+    "build": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs -o src/grammar.ts src/grammar.pegjs && npx tsc",
+    "prepublish": "npm run build"
+  },
+  "main": "ffl.js",
+  "directories": {
+    "src": "src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wu000168/ffl.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/wu000168/ffl/issues"
+  },
+  "homepage": "https://github.com/wu000168/ffl#readme",
+  "description": ""
+}
