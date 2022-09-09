@@ -1,3 +1,7 @@
+{{
+    import { __merge } from "./utils";
+}}
+
 blocks = __ bs:(block __)* { return bs.map((b : [any]) => b[0]); }
 
 block = s:selectorsList __ '{' __ attrs:attributes __ '}' {
@@ -23,23 +27,24 @@ literal = '$' expr:$litChar+ '$' { return { type : "literal", str: expr }; }
 clazz = '.' ident:$ident { return  { type : "class", str: ident }; }
 
 /// Style Block
-attributes = as:(attribute __ ';' __)* ta:attribute (__ ';')? { // trailing semicolon does not work, no idea why
-    return [...as.map((a : [any]) => a[0]), ta].reduce((acc : any, ent : { [key : string] : any[] }) => {
-        for (var k in ent) {
-            if (!acc[k]) {
-                acc[k] = new Array();
+attributes = ha:attribute ta:(';' __ @attribute)* ';'?{
+    return [ha, ...ta].reduce((acc : any, ent : { [key : string] : any[] }) => {
+        return __merge(acc, ent,
+            (a: { [key: string]: any }, b: any) => { throw 'value should always be strings'; },
+            (arr1: any, arr2: any) => {
+                arr1 ??= [];
+                if (!Array.isArray(arr1)) arr1 = [arr1];
+                return arr1.concat(arr2);
             }
-            acc[k].push(ent[k]);
-        }
-        return acc;
+        );
     }, {})
 }
 
 // PEG has no backtracking, need to figure out how to allow '}' in there
-attribute = "css" __ ':' __ '{' val:$(!'}' .)* '}' { return { css: val }; }
+attribute = k:styleKey __ ':' __ v:styleValue __ { return { [k.trim()]: v.trim() }; }
 
-styleKey = $ident
-styleValue = $alnum+
+styleKey = $('--'? ident)
+styleValue = $(!(';' / '}') .)+
 
 ident = $(alpha alnum*)
 
