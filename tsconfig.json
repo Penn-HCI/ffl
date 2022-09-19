@@ -97,6 +97,7 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
   },
   "exclude": [
+    "**/webpack.config.js",
     "src/reexport.js",
     "node_modules",
     "doc",

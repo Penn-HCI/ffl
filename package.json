@@ -4,13 +4,12 @@
   "private": true,
   "license": "MIT",
   "dependencies": {
-    "@emotion/react": "^11.10.4",
-    "@emotion/styled": "^11.10.4",
-    "@mui/material": "^5.10.3",
+    "@types/d3": "^7.4.0",
     "@types/katex": "^0.14.0",
     "@types/lodash": "^4.14.184",
     "@types/react": "^18.0.19",
     "@types/rewire": "^2.5.28",
+    "d3": "^7.6.1",
     "katex": "^0.16.2",
     "labella": "^1.1.4",
     "lodash": "^4.17.21",
@@ -42,8 +41,5 @@
     "url": "https://github.com/wu000168/ffl/issues"
   },
   "homepage": "https://github.com/wu000168/ffl#readme",
-  "description": "",
-  "optionalDependencies": {
-    "react": "^18.2.0"
-  }
+  "description": ""
 }

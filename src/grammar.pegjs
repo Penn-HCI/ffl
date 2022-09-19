@@ -42,6 +42,8 @@ attributes = ha:attribute ta:(';' __ @attribute)* ';'?{
 
 // PEG has no backtracking, need to figure out how to allow '}' in there
 attribute = k:styleKey __ ':' __ v:styleValue __ { return { [k.trim()]: v.trim() }; }
+// should we specify syntax for special attributes here?
+// e.g. currently `label` does not allow ";" or "}" because of how generic values are parsed
 
 styleKey = $('--'? ident)
 styleValue = $(!(';' / '}') .)+
@@ -49,7 +51,7 @@ styleValue = $(!(';' / '}') .)+
 ident = $(alpha alnum*)
 
 // Char Classes
-litChar = [^$] / "\\$"
+litChar = $("\\$" / (!'$' .))
 
 alnum = alpha / num / '_'
 

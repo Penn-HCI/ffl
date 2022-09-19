@@ -11,7 +11,8 @@ function App() {
   const [texStr, setTeX] = useState("f(x)=m_0x+b");
   var render;
   try {
-    render = ffl.renderToString(`\\ffl{${fflStr}}{${texStr}}`, {})
+    render = document.createElement("div");
+    ffl.render(`\\ffl{${fflStr}}{${texStr}}`, render, {})
   } catch (error) {
     console.log(error);
   };
@@ -53,7 +54,7 @@ function App() {
               />
             </Grid>
           </Grid>
-          <div dangerouslySetInnerHTML={{ __html: render ?? "" }} />
+          <div dangerouslySetInnerHTML={{ __html: render?.outerHTML ?? "" }} />
         </Stack>
       </Container>
     </div>
