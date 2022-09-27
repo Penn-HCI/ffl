@@ -31,8 +31,90 @@ const grammar = __importStar(require("./grammar"));
 const lodash_1 = __importStar(require("lodash"));
 const utils_1 = require("./utils");
 const labella = __importStar(require("labella"));
+const groupParser_1 = require("./groupParser");
 const __fflPrefix = "\\ffl@";
+const __fflMarkerCmd = "\\fflMarker";
+function __fflMarker(s) { return `${__fflMarkerCmd}{${s}}`; }
+;
 // TODO: lift out shared constants
+// TODO: this is inefficient, we need better representations
+function __markMatches(src, matchers, wildcardSingle, wildcardAny) {
+    var source = lodash_1.default.cloneDeep(src);
+    var startStyles = {};
+    var endStyles = {};
+    let matchTableState = [];
+    function __match(selector, target) {
+        if ([target, wildcardSingle, wildcardAny].some(tok => selector === tok))
+            return true;
+        if (Array.isArray(selector) && Array.isArray(target)) {
+            var matchState = [[...selector]]; // clones
+            for (var i = 0; i < target.length; i++) {
+                if (!(typeof target[i] === 'string' && (0, utils_1.__isWhitespace)(target[i]))) {
+                    matchState.push(...matchState.filter(selector => selector[0] === wildcardAny)
+                        .map(selector => selector.slice(1)));
+                    matchState = [
+                        ...matchState.filter(selector => __match(selector[0], target[i]))
+                            .map(selector => selector.slice(1)),
+                        ...matchState.filter(selector => selector[0] == wildcardAny)
+                    ];
+                }
+            }
+            return matchState.some(m => m.length == 0);
+        }
+        return false;
+    }
+    for (var idx = 0; idx < source.length; idx++) {
+        var tok = source[idx];
+        if (!(typeof tok === 'string' && (0, utils_1.__isWhitespace)(tok))) {
+            matchTableState.push(...matchers, ...matchTableState.filter(matcher => matcher.matcher[0] === wildcardAny)
+                .map(matcher => { return { ...matcher, matcher: matcher.matcher.slice(1) }; }));
+            matchTableState = [
+                ...matchTableState.filter(matcher => __match(matcher.matcher[0], tok))
+                    .map(matcher => { return { ...matcher, matcher: matcher.matcher.slice(1) }; }),
+                ...matchTableState.filter(matcher => matcher.matcher[0] === wildcardAny),
+            ].map(matcher => {
+                return { ...matcher, startIdx: matcher.startIdx ?? idx };
+            });
+            matchTableState.filter(matcher => matcher.matcher.length == 0 && matcher.startIdx !== undefined)
+                .forEach(matcher => {
+                startStyles[matcher.startIdx] ??= [];
+                startStyles[matcher.startIdx].push({
+                    end: idx + 1,
+                    style: matcher.key
+                });
+                endStyles[idx + 1] ??= [];
+                endStyles[idx + 1].push({
+                    start: matcher.startIdx,
+                    style: matcher.key
+                });
+            });
+        }
+        if (Array.isArray(tok)) {
+            source[idx] = __markMatches(tok, matchers, wildcardSingle, wildcardAny);
+        }
+    }
+    /// mark style groupings
+    var latexWithMarkers = [];
+    for (var i = 0; i <= source.length; i++) {
+        if (endStyles[i]) {
+            latexWithMarkers.push(...endStyles[i]
+                .map((e) => [e.start, e.style])
+                .sort().reverse().filter((v, i, a) => a.indexOf(v) === i)
+                .map((val) => __fflMarker(`endStyle{${val[1]}}`)));
+        }
+        if (startStyles[i]) {
+            latexWithMarkers.push(...startStyles[i]
+                .map((e) => [e.end, e.style])
+                .sort().filter((v, i, a) => a.indexOf(v) === i)
+                .map((val) => __fflMarker(`startStyle{${val[1]}}`)));
+        }
+        if (source[i])
+            latexWithMarkers.push(source[i]);
+    }
+    // FIXME: if this is right after a macro we should insert {} but be mindful of _/^
+    // How to distinguish macros with v.s. w/o argument
+    return latexWithMarkers;
+}
 function overrideOptions(options) {
     options ??= { macros: {} };
     return {
@@ -49,7 +131,7 @@ function overrideOptions(options) {
                 var tok, litMode = false, litTokens = [];
                 while (tok = fflTokens.pop()) {
                     if (tok.text == '$') {
-                        litMode = !litMode;
+                        litMode = !litMode; // this flipping is should be fine if ffl parses
                         if (litMode)
                             litTokens = [];
                         else
@@ -74,142 +156,52 @@ function overrideOptions(options) {
             }}}\\verb!${fflString.slice(grammarError.location?.end.offset)}!
             }}{\\texttt{\\}\\{}${latex.reverse().map(tok => tok.text).join("")}\\texttt{\\}}}`;
                 }
-                /// convert literal selectors to token state maps, removing spaces
-                fflLitSelectors = fflLitSelectors.map(sel => sel.map((tok) => tok.text).filter((txt) => !(0, utils_1.__isWhitespace)(txt)));
-                function __collapse(arr) {
-                    return lodash_1.default.mapValues((0, utils_1.__mapGroup)(arr, ent => ent[1][0] ?? '\0', ent => [ent[0], ent[1].slice(1)]), (grp, key, _o) => key != '\0' ? __collapse(grp) : grp.map((idx) => idx[0]));
-                }
-                let fflLitSelectorsMap = __collapse(Object.entries(fflLitSelectors));
-                /// mark all matches for literal selectors
-                var startStyles = [];
-                var endStyles = [];
-                var fflLitSelectorsClassNames = fflLitSelectors.map((val) => val.join("").replaceAll(/[^-_A-Za-z]/g, '_'));
-                latex = latex.reverse(); // can't use pop since we are doing 2 loops
-                // TODO: revert to using the array/set format instead of state map, maybe could be less than n^2
-                // prereq: evaluate if it is actually faster than merges
-                for (var start = 0; start < latex.length; start++) {
-                    let remainingMatchTable = fflLitSelectorsMap;
-                    for (var cur = start; cur < latex.length; cur++) {
-                        var tok = latex[cur].text;
-                        if (!(0, utils_1.__isWhitespace)(tok)) {
-                            // note that we do not remove whitespaces in the LaTeX string only skip them in case of useful ones
-                            if (!(Object.hasOwn(remainingMatchTable, tok)
-                                || Object.hasOwn(remainingMatchTable, '\\?')
-                                || Object.hasOwn(remainingMatchTable, '\\*'))) {
-                                break;
-                            }
-                            else {
-                                // TODO: handle escapes ('\$')
-                                // FIXME: wildcard '\*' still has weird behaviors
-                                const __merge_cont_style = function (map, arr) {
-                                    return arr ? { ...Object.assign({}, map), '\0': arr } : map;
-                                };
-                                const __merge_style_arrs = function (arr1, arr2) {
-                                    if (!arr1)
-                                        arr1 = [];
-                                    if (!Array.isArray(arr1))
-                                        arr1 = [arr1];
-                                    return arr1.concat(arr2);
-                                };
-                                // merging all possible states after wildcard
-                                var newRemainingMatchTable = (0, utils_1.__merge)({}, remainingMatchTable[tok], __merge_cont_style, __merge_style_arrs);
-                                (0, utils_1.__merge)(newRemainingMatchTable, remainingMatchTable['\\?'] ?? {}, __merge_cont_style, __merge_style_arrs);
-                                // FIXME: \? should not match empty selection
-                                if (remainingMatchTable['\\*']) {
-                                    newRemainingMatchTable =
-                                        (0, utils_1.__merge)(newRemainingMatchTable, remainingMatchTable['\\*'] ?? {}, __merge_cont_style, __merge_style_arrs);
-                                    newRemainingMatchTable =
-                                        (0, utils_1.__merge)(newRemainingMatchTable, { '\\*': remainingMatchTable['\\*'] }, __merge_cont_style, __merge_style_arrs);
-                                }
-                                remainingMatchTable = newRemainingMatchTable;
-                                if (Object.hasOwn(remainingMatchTable, '\0')) {
-                                    startStyles[start] ??= [];
-                                    startStyles[start].push({
-                                        end: cur + 1,
-                                        styles: remainingMatchTable['\0'].map((idx) => `fflMatch${idx}-${fflLitSelectorsClassNames[idx]}`)
-                                    });
-                                    endStyles[cur + 1] ??= [];
-                                    endStyles[cur + 1].push({
-                                        start: start,
-                                        styles: remainingMatchTable['\0'].map((idx) => `fflMatch${idx}-${fflLitSelectorsClassNames[idx]}`)
-                                    });
-                                }
+                // working with strings from now on, until we find a good way to implement katex's Token interface
+                var __isOpenGroup = (tok) => tok == '{';
+                var __isCloseGroup = (tok) => tok == '}';
+                latex = (0, groupParser_1.__parseAtomics)(latex.reverse().map(tok => tok.text), __isOpenGroup, __isCloseGroup);
+                fflLitSelectors = fflLitSelectors.map((selector, idx) => {
+                    let selectorTexts = selector.map(tok => tok.text);
+                    return {
+                        key: `fflMatch${idx}-${selectorTexts.join("").replaceAll(/[^-_A-Za-z]/g, '_')}`,
+                        matcher: (0, groupParser_1.__parseAtomics)(selectorTexts.filter(tok => !(0, utils_1.__isWhitespace)(tok)), __isOpenGroup, __isCloseGroup)
+                    };
+                });
+                let latexWithMarkers = __markMatches(latex, fflLitSelectors, '\\?', '\\*');
+                // TODO: flatten groups and mark classes
+                function __deepFlattenAndMark(tokens) {
+                    if (Array.isArray(tokens)) {
+                        var ret = [];
+                        for (var i = 0; i < tokens.length; i++) {
+                            let tok = tokens[i];
+                            switch (tok) {
+                                case "^":
+                                    ret.push(tok, '{', __fflMarker("startStyle{superscript}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{superscript}"), '}');
+                                    break;
+                                case "_":
+                                    ret.push(tok, '{', __fflMarker("startStyle{subscript}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{subscript}"), '}');
+                                    break;
+                                case "\\frac":
+                                    ret.push(tok, '{', __fflMarker("startStyle{numerator}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{numerator}"), '}');
+                                    ret.push('{', __fflMarker("startStyle{denominator}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{denominator}"), '}');
+                                    break;
+                                default:
+                                    if (Array.isArray(tok))
+                                        ret.push('{', ...__deepFlattenAndMark(tok), '}');
+                                    else
+                                        ret.push(__deepFlattenAndMark(tok));
                             }
                         }
-                    }
-                }
-                /// mark style groupings
-                var latexWithMarkers = [];
-                for (var i = 0; i <= latex.length; i++) {
-                    if (endStyles[i]) {
-                        latexWithMarkers.push(...endStyles[i]
-                            .flatMap((e) => e.styles.map((sty, idx, arr) => [e.start, sty]))
-                            .sort().reverse().filter((v, i, a) => a.indexOf(v) === i)
-                            .map((val) => `\\fflMarker{endStyle{${val[1]}}}`));
-                    }
-                    if (startStyles[i]) {
-                        latexWithMarkers.push(...startStyles[i]
-                            .flatMap((e) => e.styles.map((sty, idx, arr) => [e.end, sty]))
-                            .sort().filter((v, i, a) => a.indexOf(v) === i)
-                            .map((val) => `\\fflMarker{startStyle{${val[1]}}}`));
-                    }
-                    latexWithMarkers.push(latex[i]?.text ?? '');
-                }
-                /// fix groupings at markers after _/^, add markers for special classes
-                function __markGroups(idx, clazz) {
-                    let isGroup = latexWithMarkers[idx] == '{';
-                    if (!isGroup)
-                        latexWithMarkers.splice(idx, 0, "{");
-                    latexWithMarkers.splice(++idx, 0, `\\fflMarker{startStyle{${clazz}}}`);
-                    while (latexWithMarkers[idx].startsWith("\\fflMarker"))
-                        idx++;
-                    if (isGroup) {
-                        let openGroups = 0;
-                        while (openGroups >= 0 && idx < latexWithMarkers.length) {
-                            let clazz = latexWithMarkers[idx] == '^' ? "superscript"
-                                : latexWithMarkers[idx] == '_' ? "subscript"
-                                    : latexWithMarkers[idx] == '\\frac' ? "frac"
-                                        : undefined;
-                            if (clazz) {
-                                let endGroup = __markGroups(idx + 1, clazz == "frac" ? "numerator" : clazz);
-                                if (clazz == "frac")
-                                    endGroup = __markGroups(endGroup, "denominator");
-                                idx = endGroup;
-                            }
-                            else {
-                                idx++;
-                            }
-                            switch (latexWithMarkers[idx]) {
-                                case '{':
-                                    openGroups++;
-                                    break;
-                                case '}':
-                                    openGroups--;
-                                    break;
-                            }
-                        }
+                        return ret;
                     }
                     else {
-                        while (latexWithMarkers[++idx].startsWith("\\fflMarker{endStyle"))
-                            ;
-                    }
-                    latexWithMarkers.splice(idx++, 0, `\\fflMarker{endStyle{${clazz}}}`);
-                    if (!isGroup)
-                        latexWithMarkers.splice(idx, 0, "}");
-                    return idx + 1;
-                }
-                for (var i = 0; i < latexWithMarkers.length; i++) {
-                    let clazz = latexWithMarkers[i] == '^' ? "superscript"
-                        : latexWithMarkers[i] == '_' ? "subscript"
-                            : latexWithMarkers[i] == '\\frac' ? "frac"
-                                : undefined;
-                    if (clazz) {
-                        i = __markGroups(i + 1, clazz == "frac" ? "numerator" : clazz);
-                        if (clazz == "frac")
-                            i = __markGroups(i, "denominator");
+                        return tokens;
                     }
                 }
-                // the inclusion of spaces as tokens is inconsistent
+                let _latexWithMarkers = __deepFlattenAndMark(latexWithMarkers);
+                latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
+                // the inclusion of spaces as tokens is inconsistent,
+                // we need additional spaces since we are concat'ing back to string
                 for (var i = 1; i < latexWithMarkers.length; i++) {
                     let tok = latexWithMarkers[i - 1];
                     if (tok.startsWith('\\') && tok.charAt(tok.length - 1).match(/^[a-z0-9]+$/g)
@@ -219,15 +211,13 @@ function overrideOptions(options) {
                 }
                 /// register styles, CSS only for now
                 let sectionId = self.crypto.randomUUID();
-                // TODO: rewrite this line & block below to use class fflLitSelectors directly
-                let fflLitSelectorsRevMap = Object.fromEntries(Object.entries(fflLitSelectors).map(val => [val[1].join(''), val[0]]));
                 // this below needs to get clean up (too many nested call backs)
                 var labels = [];
+                var idx = 0;
                 let styleString = fflParse.map((styleBlock) => {
                     let classString = styleBlock.selectors.map((selectorGroups) => selectorGroups.map((singleSelector) => {
                         if (singleSelector.type == 'literal') {
-                            let idx = fflLitSelectorsRevMap[singleSelector.str.replaceAll(/[ \t\r\n\v\f]/g, '')];
-                            return `.fflMatch${idx}-${fflLitSelectorsClassNames[idx]}`;
+                            return `.${fflLitSelectors[idx++].key}`;
                         }
                         if (singleSelector.type == 'class') {
                             return `.${singleSelector.str}`;
@@ -245,9 +235,9 @@ function overrideOptions(options) {
                         return `${k}: ${Array.isArray(v) ? v.join(' ') : v};`;
                     }).join('\n')}\n}`;
                 }).join('\n');
-                return `{\\fflMarker{startInvoc{${sectionId}}}\\fflMarker{styleString{${styleString}}}
-          ${labels.map(({ selector, labelText }) => `\\fflMarker{label{${selector}}{${labelText}}}`).join('')}
-          {${latexWithMarkers.join('')}}\\fflMarker{endInvoc{${sectionId}}}}`;
+                return `{${__fflMarker(`startInvoc{${sectionId}}`)}${__fflMarker(`styleString{${styleString}}`)}
+          ${labels.map(({ selector, labelText }) => __fflMarker(`label{${selector}}{${labelText}}`)).join('')}
+          {${latexWithMarkers.join('')}}${__fflMarker(`endInvoc{${sectionId}}`)}}`;
             },
             '\\fflMarker': (context) => {
                 var arg = context.consumeArg();
@@ -439,7 +429,11 @@ class ffl {
      * no labeling support here until we backport it to plain HTML
      */
     static renderToString(expression, options) {
-        return __renderToHTMLTree(expression, options).toMarkup();
+        let htmlTree = __renderToHTMLTree(expression, options);
+        let htmlNode = htmlTree.toNode();
+        if (htmlTree.ffl?.labels)
+            __drawLabels(htmlTree.ffl.labels, htmlNode);
+        return htmlNode.outerHTML;
     }
 }
 exports.default = ffl;

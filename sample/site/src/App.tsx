@@ -7,8 +7,8 @@ import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import { useState } from "react";
 
 function App() {
-  const [fflStr, setFFL] = useState("$x$ {\n  color: blue;\n}\n\n$m_\\?$ {\n  color: red;\n}");
-  const [texStr, setTeX] = useState("f(x)=m_0x+b");
+  const [fflStr, setFFL] = useState("$x$ { color: blue; }\n$m_\\?$ { color: red; }\n.subscript { label : sub; }");
+  const [texStr, setTeX] = useState("f(x)=\\frac{x}{m_0}+b");
   var render;
   try {
     render = document.createElement("div");
