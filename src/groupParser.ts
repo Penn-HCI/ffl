@@ -8,7 +8,7 @@ function __consumeToken(tokens: any[], startIdx: number): [any, number] {
 }
 
 function __consumeGroup(tokens: any[], startIdx: number, isOpenGroup: (token: any) => boolean, isCloseGroup: (token: any) => boolean): [any, number] {
-    let children = [], idx = startIdx;
+    let children: any[] = [], idx = startIdx;
     if (isOpenGroup(tokens[idx])) {
         idx++;
         while (!isCloseGroup(tokens[idx]) && startIdx < tokens.length) {
@@ -55,7 +55,7 @@ function __fixGroups(tokens: TokenTree) {
 
 // this assumes token already passes parsing by katex
 export function __parseAtomics(tokens: any[], isOpenGroup: (token: any) => boolean, isCloseGroup: (token: any) => boolean): any[] {
-    let children = [];
+    let children: any[] = [];
     for (var idx = 0; idx < tokens.length;) {
         let [tryConsume, contIdx] = __consumeAtomic(tokens, idx, isOpenGroup, isCloseGroup);
         children.push(tryConsume);

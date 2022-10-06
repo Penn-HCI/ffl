@@ -6,7 +6,6 @@ import { GrammarError } from 'peggy';
 import { BoundingBox, __isWhitespace, __mapGroup, __merge, __resetVisibility, __setVisible } from './utils';
 import * as labella from 'labella';
 import { TokenTree, __parseAtomics } from './groupParser';
-import { match } from 'assert';
 
 const __fflPrefix = "\\ffl@";
 const __fflMarkerCmd = "\\fflMarker";
@@ -111,7 +110,7 @@ function overrideOptions(options: KatexOptions | undefined): KatexOptions {
         /// parse FFL, (hacky:) copy tokenized literal selectors
         // TODO: double check escape tokenization
         var fflString = "", fflLitSelectors: any[] = [], fflParse;
-        var tok: any, litMode = false, litTokens = [];
+        var tok: any, litMode = false, litTokens: any[] = [];
         while (tok = fflTokens.pop()) {
           if (tok.text == '$') {
             litMode = !litMode; // this flipping is should be fine if ffl parses
@@ -269,7 +268,7 @@ function __asKaTeXVirtualNode(element: HTMLElement) {
   })
 }
 
-// TODO: figure out how to use the reexported types, maybe use an actual .d.ts file instead of reexport
+// TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
 function __transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string[]) {
   if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
     classesState ??= [];

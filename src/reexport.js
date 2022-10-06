@@ -1,3 +1,3 @@
-import katex from 'katex';
+const katex = require('katex');
 
-export default { katex };
+exports.default = { katex };

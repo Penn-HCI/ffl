@@ -5,8 +5,9 @@ const typescript_1 = require("typescript");
 // custom group then map for building state map
 function __mapGroup(arr, groupFn, mapFn) {
     return arr.reduce((acc, elem, idx, arr) => {
+        var _a;
         let k = groupFn(elem, idx, arr);
-        acc[k] ??= [];
+        (_a = acc[k]) !== null && _a !== void 0 ? _a : (acc[k] = []);
         acc[k].push(mapFn(elem, idx, arr));
         return acc;
     }, {});
@@ -51,24 +52,20 @@ function __setVisible(node, displayMode) {
     // use shadow DOM here?
     let display = node.style.display;
     if (!display || display == "none")
-        node.style.display = displayMode ?? "inline-block";
+        node.style.display = displayMode !== null && displayMode !== void 0 ? displayMode : "inline-block";
     let visibility = node.getAttributeNS(null, "visibility");
     node.setAttributeNS(null, "visibility", "hidden");
     return { display, visibility };
 }
 exports.__setVisible = __setVisible;
 function __resetVisibility(node, visibility) {
+    var _a;
     node.style.display = visibility.display;
-    node.setAttributeNS(null, "visibility", visibility.visibility ?? '');
+    node.setAttributeNS(null, "visibility", (_a = visibility.visibility) !== null && _a !== void 0 ? _a : '');
 }
 exports.__resetVisibility = __resetVisibility;
 // DOMRect is read-only, we need something mutable to avoid repeated copying
 class BoundingBox {
-    top;
-    bottom;
-    left;
-    right;
-    relativeOrigin;
     constructor(props) {
         this.top = props.top;
         this.bottom = props.bottom;

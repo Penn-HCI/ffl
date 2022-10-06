@@ -15,6 +15,23 @@ function peg$padEnd(str, targetLength, padString) {
     return str + padString.slice(0, targetLength);
 }
 class SyntaxError extends Error {
+    constructor(message, expected, found, location) {
+        super();
+        this.message = message;
+        this.expected = expected;
+        this.found = found;
+        this.location = location;
+        this.name = "SyntaxError";
+        if (typeof Object.setPrototypeOf === "function") {
+            Object.setPrototypeOf(this, SyntaxError.prototype);
+        }
+        else {
+            this.__proto__ = SyntaxError.prototype;
+        }
+        if (typeof Error.captureStackTrace === "function") {
+            Error.captureStackTrace(this, SyntaxError);
+        }
+    }
     static buildMessage(expected, found) {
         function hex(ch) {
             return ch.charCodeAt(0).toString(16).toUpperCase();
@@ -92,28 +109,6 @@ class SyntaxError extends Error {
         }
         return "Expected " + describeExpected(expected) + " but " + describeFound(found) + " found.";
     }
-    message;
-    expected;
-    found;
-    location;
-    name;
-    constructor(message, expected, found, location) {
-        super();
-        this.message = message;
-        this.expected = expected;
-        this.found = found;
-        this.location = location;
-        this.name = "SyntaxError";
-        if (typeof Object.setPrototypeOf === "function") {
-            Object.setPrototypeOf(this, SyntaxError.prototype);
-        }
-        else {
-            this.__proto__ = SyntaxError.prototype;
-        }
-        if (typeof Error.captureStackTrace === "function") {
-            Error.captureStackTrace(this, SyntaxError);
-        }
-    }
     format(sources) {
         let str = 'Error: ' + this.message;
         if (this.location) {
@@ -180,7 +175,7 @@ function peg$parse(input, options) {
     const peg$c18 = function (ha, ta) {
         return [ha, ...ta].reduce((acc, ent) => {
             return (0, utils_1.__merge)(acc, ent, (a, b) => { throw 'value should always be strings'; }, (arr1, arr2) => {
-                arr1 ??= [];
+                arr1 !== null && arr1 !== void 0 ? arr1 : (arr1 = []);
                 if (!Array.isArray(arr1))
                     arr1 = [arr1];
                 return arr1.concat(arr2);
