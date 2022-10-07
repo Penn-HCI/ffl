@@ -6,7 +6,7 @@
 "use strict";
 
 
-    import { __merge } from "./utils";
+    import { merge } from "./utils";
 
 
 export interface IFilePosition {
@@ -243,7 +243,7 @@ function peg$parse(input: string, options?: IParseOptions) {
   const peg$c17 = peg$literalExpectation(";", false);
   const peg$c18 = function(ha: any, ta: any): any {
       return [ha, ...ta].reduce((acc : any, ent : { [key : string] : any[] }) => {
-          return __merge(acc, ent,
+          return merge(acc, ent,
               (a: { [key: string]: any }, b: any) => { throw 'value should always be strings'; },
               (arr1: any, arr2: any) => {
                   arr1 ??= [];

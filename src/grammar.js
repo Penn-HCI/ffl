@@ -174,7 +174,7 @@ function peg$parse(input, options) {
     const peg$c17 = peg$literalExpectation(";", false);
     const peg$c18 = function (ha, ta) {
         return [ha, ...ta].reduce((acc, ent) => {
-            return (0, utils_1.__merge)(acc, ent, (a, b) => { throw 'value should always be strings'; }, (arr1, arr2) => {
+            return (0, utils_1.merge)(acc, ent, (a, b) => { throw 'value should always be strings'; }, (arr1, arr2) => {
                 arr1 !== null && arr1 !== void 0 ? arr1 : (arr1 = []);
                 if (!Array.isArray(arr1))
                     arr1 = [arr1];

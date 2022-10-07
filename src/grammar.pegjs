@@ -1,5 +1,5 @@
 {{
-    import { __merge } from "./utils";
+    import { merge } from "./utils";
 }}
 
 blocks = __ bs:(block __)* { return bs.map((b : [any]) => b[0]); }
@@ -29,7 +29,7 @@ clazz = '.' ident:$ident { return  { type : "class", str: ident }; }
 /// Style Block
 attributes = ha:attribute ta:(';' __ @attribute)* ';'?{
     return [ha, ...ta].reduce((acc : any, ent : { [key : string] : any[] }) => {
-        return __merge(acc, ent,
+        return merge(acc, ent,
             (a: { [key: string]: any }, b: any) => { throw 'value should always be strings'; },
             (arr1: any, arr2: any) => {
                 arr1 ??= [];

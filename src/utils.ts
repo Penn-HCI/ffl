@@ -1,7 +1,10 @@
-import { isWhiteSpaceLike } from "typescript";
+import { isWhiteSpaceLike } from 'typescript';
+declare function require(path: string): any;
+
+export function isServer() { return typeof window === "undefined"; }
 
 // custom group then map for building state map
-export function __mapGroup(
+export function mapGroup(
   arr: any[],
   groupFn: (elem: any, idx?: number, arr?: any[]) => any,
   mapFn: (elem: any, idx?: number, arr?: any[]) => any
@@ -14,25 +17,25 @@ export function __mapGroup(
   }, {});
 }
 
-export function __isWhitespace(str: string): boolean {
+export function isWhitespace(str: string): boolean {
   return str.split("").map(c => c.charCodeAt(0)).every(isWhiteSpaceLike);
 }
 
-function __isObject(obj: any) {
+function isObject(obj: any) {
   return obj === Object(obj) && !Array.isArray(obj);
 }
 
 // custom merge for merging state map, used during handling wildcards
 // not this modifies dest
-export function __merge(dest: { [key: string]: any }, src: { [key: string]: any },
+export function merge(dest: { [key: string]: any }, src: { [key: string]: any },
   merge_obj_other: (a: { [key: string]: any }, b: any) => any,
   merge_others: (a: any, b: any) => any) {
-  let isDestObj = __isObject(dest), isSrcObj = __isObject(src);
+  let isDestObj = isObject(dest), isSrcObj = isObject(src);
   if (isDestObj) {
     if (isSrcObj) {
       for (var k in src) {
         if (dest[k]) {
-          dest[k] = __merge(dest[k], src[k], merge_obj_other, merge_others);
+          dest[k] = merge(dest[k], src[k], merge_obj_other, merge_others);
         } else {
           dest[k] = src[k];
         }
@@ -48,7 +51,7 @@ export function __merge(dest: { [key: string]: any }, src: { [key: string]: any 
   }
 }
 
-export function __setVisible(node: HTMLElement, displayMode?: string): { display: any, visibility: any } {
+export function setVisible(node: HTMLElement, displayMode?: string): { display: any, visibility: any } {
   // use shadow DOM here?
   let display = node.style.display;
   if (!display || display == "none") node.style.display = displayMode ?? "inline-block";
@@ -57,12 +60,12 @@ export function __setVisible(node: HTMLElement, displayMode?: string): { display
   return { display, visibility };
 }
 
-export function __resetVisibility(node: HTMLElement, visibility: { display: any, visibility: any }) {
+export function resetVisibility(node: HTMLElement, visibility: { display: any, visibility: any }) {
   node.style.display = visibility.display;
   node.setAttributeNS(null, "visibility", visibility.visibility ?? '');
 }
 
-export type __BoundingBoxProps = {
+export type BoundingBoxProps = {
   top: number, bottom: number, left: number, right: number,
   relativeOrigin?: BoundingBox
 };
@@ -71,7 +74,7 @@ export type __BoundingBoxProps = {
 export class BoundingBox {
   top: number; bottom: number; left: number; right: number;
   relativeOrigin?: BoundingBox;
-  constructor(props: __BoundingBoxProps) {
+  constructor(props: BoundingBoxProps) {
     this.top = props.top;
     this.bottom = props.bottom;
     this.left = props.left;
@@ -116,4 +119,52 @@ export class BoundingBox {
       })
     );
   }
+}
+
+export function asKaTeXVirtualNode(element: HTMLElement) {
+  return new Proxy(element, {
+    get(target, prop, receiver) {
+      switch (prop) {
+        case "hasClass": return target.classList.contains;
+        case "toNode": return () => target;
+        case "toMarkup": return () => target.outerHTML;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  })
+}
+
+export function toKaTeXVirtualNode(html: string) {
+  return new Proxy({}, {
+    get(target, prop, receiver) {
+      if (prop == "toMarkup") return () => html;
+      else {
+        var element = toHTMLElement(html);
+        switch (prop) {
+          case "toNode": return () => element;
+          case "hasClass": return element.classList.contains;
+        }
+        return Reflect.get(element, prop, receiver);
+      }
+    },
+  })
+}
+
+export function toHTMLElement(innerHTML: string): HTMLElement {
+  var document: any;
+  if (isServer()) {
+    try {
+      let { jsdom } = require('jsdom-jscore-rn');
+      document = jsdom('<body></body>').window.document;
+    } catch (err) {
+      console.log("import 'jsdom-jscore': " + err);
+    }
+  } else {
+    document = self.window.document;
+  }
+  let tempContainer = document.createElement('div');
+  tempContainer.innerHTML = innerHTML;
+  // wraps in div if is just text node
+  return tempContainer.firstChild?.nodeType == 3 ? tempContainer :
+    tempContainer.firstChild as HTMLElement;
 }

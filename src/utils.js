@@ -1,9 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BoundingBox = exports.__resetVisibility = exports.__setVisible = exports.__merge = exports.__isWhitespace = exports.__mapGroup = void 0;
+exports.toHTMLElement = exports.toKaTeXVirtualNode = exports.asKaTeXVirtualNode = exports.BoundingBox = exports.resetVisibility = exports.setVisible = exports.merge = exports.isWhitespace = exports.mapGroup = exports.isServer = void 0;
 const typescript_1 = require("typescript");
+function isServer() { return typeof window === "undefined"; }
+exports.isServer = isServer;
 // custom group then map for building state map
-function __mapGroup(arr, groupFn, mapFn) {
+function mapGroup(arr, groupFn, mapFn) {
     return arr.reduce((acc, elem, idx, arr) => {
         var _a;
         let k = groupFn(elem, idx, arr);
@@ -12,23 +14,23 @@ function __mapGroup(arr, groupFn, mapFn) {
         return acc;
     }, {});
 }
-exports.__mapGroup = __mapGroup;
-function __isWhitespace(str) {
+exports.mapGroup = mapGroup;
+function isWhitespace(str) {
     return str.split("").map(c => c.charCodeAt(0)).every(typescript_1.isWhiteSpaceLike);
 }
-exports.__isWhitespace = __isWhitespace;
-function __isObject(obj) {
+exports.isWhitespace = isWhitespace;
+function isObject(obj) {
     return obj === Object(obj) && !Array.isArray(obj);
 }
 // custom merge for merging state map, used during handling wildcards
 // not this modifies dest
-function __merge(dest, src, merge_obj_other, merge_others) {
-    let isDestObj = __isObject(dest), isSrcObj = __isObject(src);
+function merge(dest, src, merge_obj_other, merge_others) {
+    let isDestObj = isObject(dest), isSrcObj = isObject(src);
     if (isDestObj) {
         if (isSrcObj) {
             for (var k in src) {
                 if (dest[k]) {
-                    dest[k] = __merge(dest[k], src[k], merge_obj_other, merge_others);
+                    dest[k] = merge(dest[k], src[k], merge_obj_other, merge_others);
                 }
                 else {
                     dest[k] = src[k];
@@ -47,8 +49,8 @@ function __merge(dest, src, merge_obj_other, merge_others) {
         return merge_others(dest, src);
     }
 }
-exports.__merge = __merge;
-function __setVisible(node, displayMode) {
+exports.merge = merge;
+function setVisible(node, displayMode) {
     // use shadow DOM here?
     let display = node.style.display;
     if (!display || display == "none")
@@ -57,13 +59,13 @@ function __setVisible(node, displayMode) {
     node.setAttributeNS(null, "visibility", "hidden");
     return { display, visibility };
 }
-exports.__setVisible = __setVisible;
-function __resetVisibility(node, visibility) {
+exports.setVisible = setVisible;
+function resetVisibility(node, visibility) {
     var _a;
     node.style.display = visibility.display;
     node.setAttributeNS(null, "visibility", (_a = visibility.visibility) !== null && _a !== void 0 ? _a : '');
 }
-exports.__resetVisibility = __resetVisibility;
+exports.resetVisibility = resetVisibility;
 // DOMRect is read-only, we need something mutable to avoid repeated copying
 class BoundingBox {
     constructor(props) {
@@ -107,3 +109,55 @@ class BoundingBox {
     }
 }
 exports.BoundingBox = BoundingBox;
+function asKaTeXVirtualNode(element) {
+    return new Proxy(element, {
+        get(target, prop, receiver) {
+            switch (prop) {
+                case "hasClass": return target.classList.contains;
+                case "toNode": return () => target;
+                case "toMarkup": return () => target.outerHTML;
+            }
+            return Reflect.get(target, prop, receiver);
+        },
+    });
+}
+exports.asKaTeXVirtualNode = asKaTeXVirtualNode;
+function toKaTeXVirtualNode(html) {
+    return new Proxy({}, {
+        get(target, prop, receiver) {
+            if (prop == "toMarkup")
+                return () => html;
+            else {
+                var element = toHTMLElement(html);
+                switch (prop) {
+                    case "toNode": return () => element;
+                    case "hasClass": return element.classList.contains;
+                }
+                return Reflect.get(element, prop, receiver);
+            }
+        },
+    });
+}
+exports.toKaTeXVirtualNode = toKaTeXVirtualNode;
+function toHTMLElement(innerHTML) {
+    var _a;
+    var document;
+    if (isServer()) {
+        try {
+            let { jsdom } = require('jsdom-jscore-rn');
+            document = jsdom('<body></body>').window.document;
+        }
+        catch (err) {
+            console.log("import 'jsdom-jscore': " + err);
+        }
+    }
+    else {
+        document = self.window.document;
+    }
+    let tempContainer = document.createElement('div');
+    tempContainer.innerHTML = innerHTML;
+    // wraps in div if is just text node
+    return ((_a = tempContainer.firstChild) === null || _a === void 0 ? void 0 : _a.nodeType) == 3 ? tempContainer :
+        tempContainer.firstChild;
+}
+exports.toHTMLElement = toHTMLElement;

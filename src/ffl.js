@@ -32,28 +32,29 @@ const lodash_1 = __importStar(require("lodash"));
 const utils_1 = require("./utils");
 const labella = __importStar(require("labella"));
 const groupParser_1 = require("./groupParser");
-const __fflPrefix = "\\ffl@";
-const __fflMarkerCmd = "\\fflMarker";
-function __fflMarker(s) { return `${__fflMarkerCmd}{${s}}`; }
+const uuid_1 = require("uuid");
+// TODO: lift out more shared constants
+const fflPrefix = "\\ffl@";
+const fflMarkerCmd = "\\fflMarker";
+function fflMarker(s) { return `${fflMarkerCmd}{${s}}`; }
 ;
-// TODO: lift out shared constants
 // TODO: this is inefficient, we need better representations
-function __markMatches(src, matchers, wildcardSingle, wildcardAny) {
+function markMatches(src, matchers, wildcardSingle, wildcardAny) {
     var source = lodash_1.default.cloneDeep(src);
     var startStyles = {};
     var endStyles = {};
     let matchTableState = [];
-    function __match(selector, target) {
+    function match(selector, target) {
         if ([target, wildcardSingle, wildcardAny].some(tok => selector === tok))
             return true;
         if (Array.isArray(selector) && Array.isArray(target)) {
             var matchState = [[...selector]]; // clones
             for (var i = 0; i < target.length; i++) {
-                if (!(typeof target[i] === 'string' && (0, utils_1.__isWhitespace)(target[i]))) {
+                if (!(typeof target[i] === 'string' && (0, utils_1.isWhitespace)(target[i]))) {
                     matchState.push(...matchState.filter(selector => selector[0] === wildcardAny)
                         .map(selector => selector.slice(1)));
                     matchState = [
-                        ...matchState.filter(selector => __match(selector[0], target[i]))
+                        ...matchState.filter(selector => match(selector[0], target[i]))
                             .map(selector => selector.slice(1)),
                         ...matchState.filter(selector => selector[0] == wildcardAny)
                     ];
@@ -65,11 +66,11 @@ function __markMatches(src, matchers, wildcardSingle, wildcardAny) {
     }
     for (var idx = 0; idx < source.length; idx++) {
         var tok = source[idx];
-        if (!(typeof tok === 'string' && (0, utils_1.__isWhitespace)(tok))) {
+        if (!(typeof tok === 'string' && (0, utils_1.isWhitespace)(tok))) {
             matchTableState.push(...matchers, ...matchTableState.filter(matcher => matcher.matcher[0] === wildcardAny)
                 .map(matcher => { return Object.assign(Object.assign({}, matcher), { matcher: matcher.matcher.slice(1) }); }));
             matchTableState = [
-                ...matchTableState.filter(matcher => __match(matcher.matcher[0], tok))
+                ...matchTableState.filter(matcher => match(matcher.matcher[0], tok))
                     .map(matcher => { return Object.assign(Object.assign({}, matcher), { matcher: matcher.matcher.slice(1) }); }),
                 ...matchTableState.filter(matcher => matcher.matcher[0] === wildcardAny),
             ].map(matcher => {
@@ -93,7 +94,7 @@ function __markMatches(src, matchers, wildcardSingle, wildcardAny) {
             });
         }
         if (Array.isArray(tok)) {
-            source[idx] = __markMatches(tok, matchers, wildcardSingle, wildcardAny);
+            source[idx] = markMatches(tok, matchers, wildcardSingle, wildcardAny);
         }
     }
     /// mark style groupings
@@ -103,13 +104,13 @@ function __markMatches(src, matchers, wildcardSingle, wildcardAny) {
             latexWithMarkers.push(...endStyles[i]
                 .map((e) => [e.start, e.style])
                 .sort().reverse().filter((v, i, a) => a.indexOf(v) === i)
-                .map((val) => __fflMarker(`endStyle{${val[1]}}`)));
+                .map((val) => fflMarker(`endStyle{${val[1]}}`)));
         }
         if (startStyles[i]) {
             latexWithMarkers.push(...startStyles[i]
                 .map((e) => [e.end, e.style])
                 .sort().filter((v, i, a) => a.indexOf(v) === i)
-                .map((val) => __fflMarker(`startStyle{${val[1]}}`)));
+                .map((val) => fflMarker(`startStyle{${val[1]}}`)));
         }
         if (source[i])
             latexWithMarkers.push(source[i]);
@@ -121,7 +122,6 @@ function __markMatches(src, matchers, wildcardSingle, wildcardAny) {
 function overrideOptions(options) {
     options !== null && options !== void 0 ? options : (options = { macros: {} });
     return Object.assign(Object.assign({}, options), { throwOnError: false, macros: Object.assign(Object.assign({}, options.macros), { "\\ffl": (context) => {
-                var _a, _b, _c, _d, _e, _f;
                 // TODO: post-expansion matching
                 // FIXME: this is too monolithic, refactoring needed
                 var [fflTokens, latex] = context.consumeArgs(2);
@@ -146,50 +146,42 @@ function overrideOptions(options) {
                     fflParse = grammar.parse(fflString, { startRule: "blocks" });
                 }
                 catch (error) {
-                    // FIXME: error reporting doesn't always work
-                    let grammarError = error;
-                    return `\\texttt{\\textbackslash ffl\\{}{\\color{red}{
-            \\verb!${fflString.slice(0, (_a = grammarError.location) === null || _a === void 0 ? void 0 : _a.start.offset)}!
-            \\underbrace{\\verb!${fflString.slice((_b = grammarError.location) === null || _b === void 0 ? void 0 : _b.start.offset, (_c = grammarError.location) === null || _c === void 0 ? void 0 : _c.end.offset)}!}
-            _{\\mathclap{\\text{${(_d = grammarError.location) === null || _d === void 0 ? void 0 : _d.start.line}:${(_e = grammarError.location) === null || _e === void 0 ? void 0 : _e.start.column}: 
-              ${grammarError.message.replaceAll(/\\/g, "\\textbackslash ").replaceAll(/([&%$#_\{\}~])/g, "\\$&")}
-            }}}\\verb!${fflString.slice((_f = grammarError.location) === null || _f === void 0 ? void 0 : _f.end.offset)}!
-            }}{\\texttt{\\}\\{}${latex.reverse().map(tok => tok.text).join("")}\\texttt{\\}}}`;
+                    return fflMarker(`error{${JSON.stringify(error)}}`);
                 }
                 // working with strings from now on, until we find a good way to implement katex's Token interface
-                var __isOpenGroup = (tok) => tok == '{';
-                var __isCloseGroup = (tok) => tok == '}';
-                latex = (0, groupParser_1.__parseAtomics)(latex.reverse().map(tok => tok.text), __isOpenGroup, __isCloseGroup);
+                var isOpenGroup = (tok) => tok == '{';
+                var isCloseGroup = (tok) => tok == '}';
+                latex = (0, groupParser_1.parseAtomics)(latex.reverse().map(tok => tok.text), isOpenGroup, isCloseGroup);
                 fflLitSelectors = fflLitSelectors.map((selector, idx) => {
                     let selectorTexts = selector.map(tok => tok.text);
                     return {
                         key: `fflMatch${idx}-${selectorTexts.join("").replaceAll(/[^-_A-Za-z]/g, '_')}`,
-                        matcher: (0, groupParser_1.__parseAtomics)(selectorTexts.filter(tok => !(0, utils_1.__isWhitespace)(tok)), __isOpenGroup, __isCloseGroup)
+                        matcher: (0, groupParser_1.parseAtomics)(selectorTexts.filter(tok => !(0, utils_1.isWhitespace)(tok)), isOpenGroup, isCloseGroup)
                     };
                 });
-                let latexWithMarkers = __markMatches(latex, fflLitSelectors, '\\?', '\\*');
+                let latexWithMarkers = markMatches(latex, fflLitSelectors, '\\?', '\\*');
                 // TODO: flatten groups and mark classes
-                function __deepFlattenAndMark(tokens) {
+                function deepFlattenAndMark(tokens) {
                     if (Array.isArray(tokens)) {
                         var ret = [];
                         for (var i = 0; i < tokens.length; i++) {
                             let tok = tokens[i];
                             switch (tok) {
                                 case "^":
-                                    ret.push(tok, '{', __fflMarker("startStyle{superscript}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{superscript}"), '}');
+                                    ret.push(tok, '{', fflMarker("startStyle{superscript}"), ...deepFlattenAndMark(tokens[++i]), fflMarker("endStyle{superscript}"), '}');
                                     break;
                                 case "_":
-                                    ret.push(tok, '{', __fflMarker("startStyle{subscript}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{subscript}"), '}');
+                                    ret.push(tok, '{', fflMarker("startStyle{subscript}"), ...deepFlattenAndMark(tokens[++i]), fflMarker("endStyle{subscript}"), '}');
                                     break;
                                 case "\\frac":
-                                    ret.push(tok, '{', __fflMarker("startStyle{numerator}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{numerator}"), '}');
-                                    ret.push('{', __fflMarker("startStyle{denominator}"), ...__deepFlattenAndMark(tokens[++i]), __fflMarker("endStyle{denominator}"), '}');
+                                    ret.push(tok, '{', fflMarker("startStyle{numerator}"), ...deepFlattenAndMark(tokens[++i]), fflMarker("endStyle{numerator}"), '}');
+                                    ret.push('{', fflMarker("startStyle{denominator}"), ...deepFlattenAndMark(tokens[++i]), fflMarker("endStyle{denominator}"), '}');
                                     break;
                                 default:
                                     if (Array.isArray(tok))
-                                        ret.push('{', ...__deepFlattenAndMark(tok), '}');
+                                        ret.push('{', ...deepFlattenAndMark(tok), '}');
                                     else
-                                        ret.push(__deepFlattenAndMark(tok));
+                                        ret.push(deepFlattenAndMark(tok));
                             }
                         }
                         return ret;
@@ -198,7 +190,7 @@ function overrideOptions(options) {
                         return tokens;
                     }
                 }
-                let _latexWithMarkers = __deepFlattenAndMark(latexWithMarkers);
+                let _latexWithMarkers = deepFlattenAndMark(latexWithMarkers);
                 latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
                 // the inclusion of spaces as tokens is inconsistent,
                 // we need additional spaces since we are concat'ing back to string
@@ -210,7 +202,7 @@ function overrideOptions(options) {
                     }
                 }
                 /// register styles, CSS only for now
-                let sectionId = self.crypto.randomUUID();
+                let sectionId = (0, uuid_1.v4)();
                 // this below needs to get clean up (too many nested call backs)
                 var labels = [];
                 var idx = 0;
@@ -235,20 +227,20 @@ function overrideOptions(options) {
                         return `${k}: ${Array.isArray(v) ? v.join(' ') : v};`;
                     }).join('\n')}\n}`;
                 }).join('\n');
-                return `{${__fflMarker(`startInvoc{${sectionId}}`)}${__fflMarker(`styleString{${styleString}}`)}
-          ${labels.map(({ selector, labelText }) => __fflMarker(`label{${selector}}{${labelText}}`)).join('')}
-          {${latexWithMarkers.join('')}}${__fflMarker(`endInvoc{${sectionId}}`)}}`;
+                return `{${fflMarker(`startInvoc{${sectionId}}`)}${fflMarker(`styleString{${styleString}}`)}
+          ${labels.map(({ selector, labelText }) => fflMarker(`label{${selector}}{${labelText}}`)).join('')}
+          {${latexWithMarkers.join('')}}${fflMarker(`endInvoc{${sectionId}}`)}}`;
             }, '\\fflMarker': (context) => {
                 var arg = context.consumeArg();
-                var tok = arg.start.range(arg.end, `${__fflPrefix}${arg.tokens.reverse().map((tok) => tok.text).join('').trim()}`);
+                var tok = arg.start.range(arg.end, `${fflPrefix}${arg.tokens.reverse().map((tok) => tok.text).join('').trim()}`);
                 tok.noexpand = true;
                 return { numArgs: 0, tokens: [tok], unexpandable: true };
             } }) });
 }
-function __getFFLMarker(node) {
+function getFFLMarker(node) {
     if (['mord', 'text'].every((name) => { var _a; return ((_a = node === null || node === void 0 ? void 0 : node.classes) !== null && _a !== void 0 ? _a : []).includes(name); })
-        && node.children[0].text.startsWith(__fflPrefix)) {
-        let ffl = node.children[0].text.replace(new RegExp(`^${__fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
+        && node.children[0].text.startsWith(fflPrefix)) {
+        let ffl = node.children[0].text.replace(new RegExp(`^${fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
         let argIdx = ffl.indexOf("{");
         return {
             command: ffl.slice(0, argIdx),
@@ -261,20 +253,8 @@ function __getFFLMarker(node) {
         return undefined;
     }
 }
-function __asKaTeXVirtualNode(element) {
-    return new Proxy(element, {
-        get(target, prop, receiver) {
-            switch (prop) {
-                case "hasClass": return target.classList.contains;
-                case "toNode": return () => target;
-                case "toMarkup": return () => target.outerHTML;
-            }
-            return Reflect.get(target, prop, receiver);
-        },
-    });
-}
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
-function __transformKaTeXHTML(root, katexHtmlMain, classesState) {
+function transformKaTeXHTML(root, katexHtmlMain, classesState) {
     var _a, _b, _c, _d, _e, _f, _g;
     var _h;
     if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
@@ -283,15 +263,13 @@ function __transformKaTeXHTML(root, katexHtmlMain, classesState) {
             katexHtmlMain.classes = [katexHtmlMain.classes];
         for (var i = 0; i <= ((_a = katexHtmlMain.children) !== null && _a !== void 0 ? _a : []).length; i++) {
             var childNode = ((_b = katexHtmlMain.children) !== null && _b !== void 0 ? _b : [])[i], ffl;
-            if (ffl = __getFFLMarker(childNode)) {
+            if (ffl = getFFLMarker(childNode)) {
                 switch (ffl.command) {
                     case "startInvoc":
                         katexHtmlMain.classes.push(`ffl-${ffl.arg}`);
                         break;
                     case "styleString":
-                        var style = document.createElement('style');
-                        style.appendChild(document.createTextNode(ffl.arg.replaceAll('\xA0', '\x20')));
-                        ((_c = root.children) !== null && _c !== void 0 ? _c : (root.children = [])).push(__asKaTeXVirtualNode(style));
+                        ((_c = root.children) !== null && _c !== void 0 ? _c : (root.children = [])).push((0, utils_1.toKaTeXVirtualNode)(`<style>${ffl.arg.replaceAll('\xA0', '\x20')}</style>`));
                         break;
                     case "label": // no grouping for now
                         (_e = (_h = ((_d = root.ffl) !== null && _d !== void 0 ? _d : (root.ffl = []))).labels) !== null && _e !== void 0 ? _e : (_h.labels = []);
@@ -311,11 +289,13 @@ function __transformKaTeXHTML(root, katexHtmlMain, classesState) {
                     case "endInvoc":
                         // nothing to do here since we are using the descendant combinator
                         break;
+                    case "error":
+                        throw JSON.parse(ffl.arg);
                 }
                 katexHtmlMain.children.splice(i--, 1);
             }
             else {
-                __transformKaTeXHTML(root, childNode, classesState);
+                transformKaTeXHTML(root, childNode, classesState);
             }
         }
         ((_f = katexHtmlMain.classes) !== null && _f !== void 0 ? _f : (katexHtmlMain.classes = [])).push(...new Set(classesState));
@@ -327,28 +307,30 @@ function __transformKaTeXHTML(root, katexHtmlMain, classesState) {
         }
     }
 }
-function __renderToHTMLTree(expression, options) {
+function renderToHTMLTree(expression, options) {
     var htmlTree = reexport_1.default.katex.__renderToHTMLTree(expression, overrideOptions(options));
     var katexHtmlMain = htmlTree.children.find((span) => span.classes.includes("katex-html"));
-    __transformKaTeXHTML(htmlTree, katexHtmlMain);
+    transformKaTeXHTML(htmlTree, katexHtmlMain);
     return htmlTree;
 }
-function draw(nodes, canvas) {
-    nodes.forEach((node) => {
-        node.data.labelText.setAttribute('x', `${node.x + node.dx / 2}`);
-        node.data.labelText.setAttribute('dx', `${node.dx}`);
-        node.data.labelText.setAttribute('y', `${node.y + node.dy / 2}`);
-        node.data.labelText.setAttribute('dy', `${node.dy}`);
-        canvas.appendChild(node.data.labelText);
-    });
-}
-function __drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
+function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
     var labelsOverlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    labelInfo.forEach((nodeInfo) => labelsOverlay.appendChild(nodeInfo.labelText));
+    let foreignObjects = labelInfo.map((nodeInfo) => {
+        var foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+        nodeInfo.labelText.setAttribute('xmlns', "http://www.w3.org/1999/xhtml");
+        foreignObject.appendChild(nodeInfo.labelText);
+        return foreignObject;
+    });
+    foreignObjects.forEach((node) => labelsOverlay.appendChild(node));
     root.prepend(labelsOverlay);
+    let boundingBoxes = labelInfo.map((info) => {
+        var range = document.createRange();
+        range.selectNode(info.labelText);
+        return range.getBoundingClientRect();
+    });
     let force = new labella.Force({
         minPos: null, nodeSpacing: 12
-    }).nodes(labelInfo.map(info => new labella.Node(info.symbolBoundingBox.center.horizontal, info.labelText.getBBox().width, info))).compute();
+    }).nodes(labelInfo.map((info, idx) => new labella.Node(info.symbolBoundingBox.center.horizontal, boundingBoxes[idx].width, info))).compute();
     let nodes = force.nodes();
     let nodeHeight = 12;
     var renderer = new labella.Renderer({
@@ -358,7 +340,7 @@ function __drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
     });
     renderer.layout(nodes);
     var viewBox = utils_1.BoundingBox.of(...nodes.map((node, idx) => {
-        let bBox = labelInfo[idx].labelText.getBBox();
+        let bBox = boundingBoxes[idx];
         return new utils_1.BoundingBox({
             top: node.y - bBox.height,
             left: node.x - bBox.width / 2,
@@ -375,67 +357,71 @@ function __drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         height: viewBox.height + nodeHeight
     });
     labelsOverlay.setAttribute('viewBox', `${viewBox.left} ${viewBox.top - nodeHeight / 2 + anchorLineY} ${viewBox.width} ${viewBox.height + nodeHeight / 2}`);
-    nodes.forEach((node) => {
-        node.data.labelText.setAttribute('x', `${node.x - node.dx / 2}`);
-        node.data.labelText.setAttribute('width', `${node.dx}`);
-        node.data.labelText.setAttribute('y', `${node.y}`);
-        node.data.labelText.setAttribute('height', `${node.dy}`);
-        node.data.labelText.setAttribute('dy', `${anchorLineY}`);
+    nodes.forEach((node, idx) => {
+        foreignObjects[idx].setAttribute('overflow', 'visible');
+        foreignObjects[idx].setAttribute('x', `${node.x - node.dx / 2}`);
+        foreignObjects[idx].setAttribute('width', `${node.dx}`);
+        foreignObjects[idx].setAttribute('y', `${anchorLineY + node.y - node.dy / 2}`);
+        foreignObjects[idx].setAttribute('height', `${node.dy}`);
         if (direction == 'down')
-            node.data.labelText.setAttribute('dominant-baseline', `hanging`);
+            foreignObjects[idx].setAttribute('dominant-baseline', `hanging`);
         let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', `M ${node.data.symbolBoundingBox.center.horizontal} `
-            + `${direction == "up" ? node.data.symbolBoundingBox.top : (node.data.symbolBoundingBox.bottom - anchorLineY)} L`
+            + `${direction == "up" ? node.data.symbolBoundingBox.top - node.dy / 2 : node.data.symbolBoundingBox.bottom - anchorLineY} L`
             + renderer.generatePath(node).slice(1));
-        path.setAttribute('transform', `translate(0, ${anchorLineY - nodeHeight / 2})`);
+        path.setAttribute('transform', `translate(0, ${anchorLineY - (direction == "up" ? 0 : node.dy / 2)})`);
         Object.assign(path.style, { stroke: 'black', fill: 'none' });
         labelsOverlay.appendChild(path);
     });
 }
-function __drawLabels(labels, root) {
+function drawLabels(labels, root) {
     // need to make sure element is rendered to find the bounding box
     document.body.appendChild(root); // root is not guaranteed to be already in the tree, so we append our own first
-    let visibility = (0, utils_1.__setVisible)(root);
+    let visibility = (0, utils_1.setVisible)(root);
     let rootBoundingBox = new utils_1.BoundingBox(root.getBoundingClientRect());
     let labelInfo = labels.map(({ selector, label }) => {
         var _a;
         let elements = [...root.querySelectorAll(selector)];
-        let labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        labelText.textContent = label;
         return {
             symbolBoundingBox: (_a = utils_1.BoundingBox.of(...elements.map(node => new utils_1.BoundingBox(node.getBoundingClientRect())))) === null || _a === void 0 ? void 0 : _a.relativeTo(rootBoundingBox),
-            labelText
+            labelText: (0, utils_1.toHTMLElement)(label)
         };
     }).filter(info => info.symbolBoundingBox);
     let center = rootBoundingBox.relativeTo(rootBoundingBox).center;
     let [bottom, top] = (0, lodash_1.partition)(labelInfo, info => { var _a; return ((_a = info.symbolBoundingBox) === null || _a === void 0 ? void 0 : _a.center.vertical) >= center.vertical; });
     root.style.position = 'relative';
     if (bottom)
-        __drawLabelGroup(bottom, root, rootBoundingBox, "down");
+        drawLabelGroup(bottom, root, rootBoundingBox, "down");
     if (top)
-        __drawLabelGroup(top, root, rootBoundingBox, "up");
-    (0, utils_1.__resetVisibility)(root, visibility);
+        drawLabelGroup(top, root, rootBoundingBox, "up");
+    (0, utils_1.resetVisibility)(root, visibility);
 }
+/**
+ * labels are only supported when running on browser client
+ */
 class ffl {
     static render(expression, baseNode, options) {
         var _a;
-        let htmlTree = __renderToHTMLTree(expression, options);
+        let htmlTree = renderToHTMLTree(expression, options);
         let htmlNode = htmlTree.toNode();
-        if ((_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.labels)
-            __drawLabels(htmlTree.ffl.labels, htmlNode);
+        if (typeof window !== "undefined" && ((_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.labels))
+            drawLabels(htmlTree.ffl.labels, htmlNode);
         baseNode.textContent = "";
         baseNode.appendChild(htmlNode);
     }
-    /**
-     * no labeling support here until we backport it to plain HTML
-     */
+    // TODO: defer label drawing to a <script> tag on client side
+    // (to be compatible VSCode which runs extension on server side)
     static renderToString(expression, options) {
         var _a;
-        let htmlTree = __renderToHTMLTree(expression, options);
-        let htmlNode = htmlTree.toNode();
-        if ((_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.labels)
-            __drawLabels(htmlTree.ffl.labels, htmlNode);
-        return htmlNode.outerHTML;
+        let htmlTree = renderToHTMLTree(expression, options);
+        if (!(0, utils_1.isServer)() && ((_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.labels)) {
+            let htmlNode = (0, utils_1.toHTMLElement)(htmlTree.toMarkup());
+            drawLabels(htmlTree.ffl.labels, htmlNode);
+            return htmlNode.outerHTML;
+        }
+        else {
+            return htmlTree.toMarkup();
+        }
     }
 }
 exports.default = ffl;

@@ -7,18 +7,20 @@
   "dependencies": {
     "@types/katex": "^0.14.0",
     "@types/lodash": "^4.14.184",
+    "@types/typescript": "^2.0.0",
     "katex": "^0.16.2",
     "labella": "^1.1.4",
     "lodash": "^4.17.21",
     "peggy": "^2.0.1",
     "ts-pegjs": "^2.1.0",
-    "typescript": "^4.8.2"
+    "typescript": "^4.8.2",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.18.10",
     "@babel/core": "^7.18.13",
     "@babel/preset-flow": "^7.18.6",
-    "@types/node": "^18.7.14",
+    "@types/node": "^18.8.3",
     "flow-bin": "^0.185.2"
   },
   "scripts": {
@@ -38,5 +40,10 @@
     "url": "https://github.com/wu000168/ffl/issues"
   },
   "homepage": "https://github.com/wu000168/ffl#readme",
-  "description": ""
+  "description": "",
+  "optionalDependencies": {
+    "jsdom-jscore-rn": "^0.1.8",
+    "node-polyfill-webpack-plugin": "^2.0.1",
+    "stream": "^0.0.2"
+  }
 }
