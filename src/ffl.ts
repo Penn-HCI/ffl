@@ -401,8 +401,8 @@ function drawLabels(labels: { selector: string, label: string }[], root: HTMLEle
  * labels are only supported when running on browser client
  */
 class ffl implements katex {
-  static render(expression: string, baseNode: HTMLElement, options?: KatexOptions): void {
-    let htmlTree = renderToHTMLTree(expression, options);
+  static render(latex: string, ffl: string, baseNode: HTMLElement, options?: KatexOptions): void {
+    let htmlTree = renderToHTMLTree(ffl ? `\\ffl{${ffl}}{${latex}}` : latex, options);
     let htmlNode = htmlTree.toNode();
     if (typeof window !== "undefined" && htmlTree.ffl?.labels)
       drawLabels(htmlTree.ffl.labels, htmlNode);
@@ -413,15 +413,21 @@ class ffl implements katex {
 
   // TODO: defer label drawing to a <script> tag on client side
   // (to be compatible VSCode which runs extension on server side)
-  static renderToString(expression: string, options?: KatexOptions): string {
-    let htmlTree = renderToHTMLTree(expression, options);
+  static renderToString(latex: string, ffl: string, options?: KatexOptions): string {
+    let htmlTree = renderToHTMLTree(ffl ? `\\ffl{${ffl}}{${latex}}` : latex, options);
     if (!isServer() && htmlTree.ffl?.labels) {
       let htmlNode = toHTMLElement(htmlTree.toMarkup());
       drawLabels(htmlTree.ffl.labels, htmlNode);
-      return htmlNode.outerHTML;
+      var htmlStr = htmlNode.outerHTML;
+      htmlNode.remove();
+      return htmlStr;
     } else {
       return htmlTree.toMarkup();
     }
+  }
+
+  static parseFFL(ffl: string) {
+    return grammar.parse(ffl, { startRule: "blocks" });
   }
 }
 

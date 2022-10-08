@@ -40,7 +40,7 @@ function fixGroups(tokens: TokenTree) {
                 fixGroups(tok);
             } else {
                 // how to get a list of macros and their # of args?
-                if (tok === '_' || tok === '^' || tok === '\\frac') {
+                if (tok === '_' || tok === '^' || tok.startsWith('\\')) {
                     if (!Array.isArray(tokens[idx + 1]))
                         tokens[idx + 1] = [tokens[idx + 1]];
                 }

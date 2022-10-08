@@ -9,11 +9,12 @@ import { useState } from "react";
 function App() {
   const [fflStr, setFFL] = useState("$x$ { color: blue; }\n$m_\\?$ { color: red; }\n.subscript { label : sub; }");
   const [texStr, setTeX] = useState("f(x)=\\frac{x}{m_0}+b");
-  var render;
+  var renderHTML, prevHTML;
   try {
-    render = document.createElement("div");
-    ffl.render(`\\ffl{${fflStr}}{${texStr}}`, render, {})
+    renderHTML = ffl.renderToString(texStr, fflStr, {});
+    prevHTML = renderHTML;
   } catch (error) {
+    renderHTML = prevHTML;
     console.log(error);
   };
   return (
@@ -54,7 +55,7 @@ function App() {
               />
             </Grid>
           </Grid>
-          <div dangerouslySetInnerHTML={{ __html: render?.outerHTML ?? "" }} />
+          <div dangerouslySetInnerHTML={{ __html: renderHTML ?? prevHTML ?? "" }} />
         </Stack>
       </Container>
     </div>
