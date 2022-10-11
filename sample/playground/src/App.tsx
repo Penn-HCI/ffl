@@ -4,17 +4,21 @@ import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import ffl from "ffl";
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { GrammarError } from "peggy";
 
 function App() {
   const [fflStr, setFFL] = useState("$x$ { color: blue; }\n$m_\\?$ { color: red; }\n.subscript { label : sub; }");
   const [texStr, setTeX] = useState("f(x)=\\frac{x}{m_0}+b");
-  var renderHTML, prevHTML;
+  const prevHTML = useRef('');
+  var renderHTML, errMsg;
   try {
-    renderHTML = ffl.renderToString(texStr, fflStr, {});
-    prevHTML = renderHTML;
+    ffl.parseFFL(fflStr.replaceAll('\n', '\r\n'));
+    prevHTML.current = renderHTML = ffl.renderToString(texStr, fflStr, {});
   } catch (error) {
-    renderHTML = prevHTML;
+    let gErr = error as GrammarError;
+    errMsg = `${gErr.location?.start.line}:${gErr.location?.start.column}:${gErr.message}`;
+    renderHTML = prevHTML.current;
     console.log(error);
   };
   return (
@@ -34,7 +38,9 @@ function App() {
                 rows={8}
                 defaultValue=""
                 value={fflStr}
+                error={errMsg ? true : false}
                 variant="filled"
+                helperText={errMsg ? errMsg : ''}
                 onChange={(e) => setFFL(e.target.value)}
               />
             </Grid>
