@@ -15,3 +15,4 @@ Please view this [cheatsheet](cheatsheet.md)
 2. What issues did you have with it? Please rank from most to least frustrating?
 3. Were there things you expected to work but didn't? If so, what were they?
 4. What are some things you liked and would like us to keep?
+5. Feed back on cheatsheet?
