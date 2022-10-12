@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 // TODO: lift out more shared constants
 const fflPrefix = "\\ffl@";
 const fflMarkerCmd = "\\fflMarker";
-function fflMarker(s: string): string { return `${fflMarkerCmd}{${s}}` };
+function fflMarker(s: string): string { return `${fflMarkerCmd}{${s}}`; }
 
 // TODO: this is inefficient, we need better representations
 function markMatches(src: TokenTree[], matchers: { key: string, matcher: TokenTree[] }[], wildcardSingle: string, wildcardAny: string) {
@@ -345,6 +345,13 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
       right: node.x! + bBox.width / 2,
     });
   }), rootBoundingBox.relativeTo(rootBoundingBox))!;
+
+  if (direction === "up") {
+    root.style.setProperty('marginTop', `${-viewBox.top}`)
+  }
+  if (direction === "down") {
+    root.style.setProperty('marginBottom', `${viewBox.bottom - rootBoundingBox.height}`)
+  }
 
   let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
   Object.assign(labelsOverlay.style, {

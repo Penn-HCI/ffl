@@ -37,7 +37,6 @@ const uuid_1 = require("uuid");
 const fflPrefix = "\\ffl@";
 const fflMarkerCmd = "\\fflMarker";
 function fflMarker(s) { return `${fflMarkerCmd}{${s}}`; }
-;
 // TODO: this is inefficient, we need better representations
 function markMatches(src, matchers, wildcardSingle, wildcardAny) {
     var source = lodash_1.default.cloneDeep(src);
@@ -348,6 +347,12 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
             right: node.x + bBox.width / 2,
         });
     }), rootBoundingBox.relativeTo(rootBoundingBox));
+    if (direction === "up") {
+        root.style.setProperty('marginTop', `${-viewBox.top}`);
+    }
+    if (direction === "down") {
+        root.style.setProperty('marginBottom', `${viewBox.bottom - rootBoundingBox.height}`);
+    }
     let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
     Object.assign(labelsOverlay.style, {
         position: 'absolute',

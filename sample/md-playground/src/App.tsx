@@ -4,8 +4,11 @@ import 'github-markdown-css/github-markdown.css';
 import { Card, Container, Stack } from '@mui/material';
 import HTMLReactParser from 'html-react-parser';
 import MarkdownIt from 'markdown-it';
+import * as ffl from 'ffl';
+import { GrammarError } from 'peggy';
+import { Typography } from '@mui/joy';
 declare function require(path: string): any;
-var ffl = require('markdown-it-ffl');
+var fflPlugin = require('markdown-it-ffl');
 
 function App() {
   const [mdSrc, setMdSrc] = useState('');
@@ -14,7 +17,16 @@ function App() {
     html: true,
     linkify: true,
     typographer: true
-  }).use(ffl, { globalStyle: fflSrc });
+  }).use(fflPlugin, { globalStyle: fflSrc });
+  var errMsg: string | undefined, render = React.useRef('');
+  try {
+    ffl.default.parseFFL(fflSrc);
+    errMsg = undefined;
+    render.current = md.render(mdSrc);
+  } catch (err) {
+    let gErr = err as GrammarError;
+    errMsg = `${gErr.location?.start.line}:${gErr.location?.start.column}:${gErr.message}`;
+  }
   return (
     <div className="App">
       <Container maxWidth='lg' sx={{ height: '100vh', padding: '8pt' }}>
@@ -33,10 +45,12 @@ function App() {
               style={{ flex: 1, resize: 'none', overflow: 'auto' }}
               value={fflSrc} onChange={(e) => setFflSrc(e.target.value)}
             />
+            {errMsg &&
+              <Typography textColor="danger" sx={{ marginTop: '-4pt' }}>{errMsg}</Typography>}
           </Stack>
           <Card sx={{ flex: 1, textAlign: 'start', overflow: 'auto', padding: '16pt' }}
             variant='outlined' className='markdown-body'>
-            {HTMLReactParser(md.render(mdSrc))}
+            {HTMLReactParser(render.current)}
           </Card>
         </Stack>
       </Container>

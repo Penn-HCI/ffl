@@ -19,6 +19,7 @@
     "html-react-parser": "^3.0.4",
     "markdown-it": "^13.0.1",
     "markdown-it-ffl": "github:wu000168/markdown-it-ffl",
+    "ffl": "../..",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
