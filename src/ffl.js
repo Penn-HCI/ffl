@@ -310,6 +310,7 @@ function renderToHTMLTree(expression, options) {
     var htmlTree = reexport_1.default.katex.__renderToHTMLTree(expression, overrideOptions(options));
     var katexHtmlMain = htmlTree.children.find((span) => span.classes.includes("katex-html"));
     transformKaTeXHTML(htmlTree, katexHtmlMain);
+    htmlTree.style.display = 'inline-block';
     return htmlTree;
 }
 function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
@@ -322,14 +323,14 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
     });
     foreignObjects.forEach((node) => labelsOverlay.appendChild(node));
     root.prepend(labelsOverlay);
-    let boundingBoxes = labelInfo.map((info) => {
+    let boundingRects = labelInfo.map((info) => {
         var range = document.createRange();
         range.selectNode(info.labelText);
         return range.getBoundingClientRect();
     });
     let force = new labella.Force({
         minPos: null, nodeSpacing: 12
-    }).nodes(labelInfo.map((info, idx) => new labella.Node(info.symbolBoundingBox.center.horizontal, boundingBoxes[idx].width, info))).compute();
+    }).nodes(labelInfo.map((info, idx) => new labella.Node(info.symbolBoundingBox.center.horizontal, boundingRects[idx].width, info))).compute();
     let nodes = force.nodes();
     let nodeHeight = 12;
     var renderer = new labella.Renderer({
@@ -339,7 +340,7 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
     });
     renderer.layout(nodes);
     var viewBox = utils_1.BoundingBox.of(...nodes.map((node, idx) => {
-        let bBox = boundingBoxes[idx];
+        let bBox = boundingRects[idx];
         return new utils_1.BoundingBox({
             top: node.y - bBox.height,
             left: node.x - bBox.width / 2,
@@ -347,13 +348,19 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
             right: node.x + bBox.width / 2,
         });
     }), rootBoundingBox.relativeTo(rootBoundingBox));
+    let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
     if (direction === "up") {
-        root.style.setProperty('marginTop', `${-viewBox.top}`);
+        let style = root.getAttribute('style');
+        if (style && !style.endsWith(';'))
+            style += ';';
+        root.setAttribute('style', style + ` margin-top: ${-viewBox.top - nodeHeight * 1.5}px;`);
     }
     if (direction === "down") {
-        root.style.setProperty('marginBottom', `${viewBox.bottom - rootBoundingBox.height}`);
+        let style = root.getAttribute('style');
+        if (style && !style.endsWith(';'))
+            style += ';';
+        root.setAttribute('style', style + ` margin-bottom: ${viewBox.bottom - rootBoundingBox.height + nodeHeight * 2}px;`);
     }
-    let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
     Object.assign(labelsOverlay.style, {
         position: 'absolute',
         top: viewBox.top - nodeHeight / 2 + anchorLineY,
@@ -366,7 +373,8 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         foreignObjects[idx].setAttribute('overflow', 'visible');
         foreignObjects[idx].setAttribute('x', `${node.x - node.dx / 2}`);
         foreignObjects[idx].setAttribute('width', `${node.dx}`);
-        foreignObjects[idx].setAttribute('y', `${anchorLineY + node.y - node.dy / 2}`);
+        foreignObjects[idx].setAttribute('y', `${anchorLineY + node.y -
+            (direction === 'up' ? boundingRects[idx].height - node.dy : node.dy / 2)}`);
         foreignObjects[idx].setAttribute('height', `${node.dy}`);
         if (direction == 'down')
             foreignObjects[idx].setAttribute('dominant-baseline', `hanging`);
@@ -374,7 +382,7 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         path.setAttribute('d', `M ${node.data.symbolBoundingBox.center.horizontal} `
             + `${direction == "up" ? node.data.symbolBoundingBox.top - node.dy / 2 : node.data.symbolBoundingBox.bottom - anchorLineY} L`
             + renderer.generatePath(node).slice(1));
-        path.setAttribute('transform', `translate(0, ${anchorLineY - (direction == "up" ? 0 : node.dy / 2)})`);
+        path.setAttribute('transform', `translate(0, ${anchorLineY - (direction == "up" ? 0 : 0)})`);
         Object.assign(path.style, { stroke: 'black', fill: 'none' });
         labelsOverlay.appendChild(path);
     });
@@ -395,9 +403,9 @@ function drawLabels(labels, root) {
     let center = rootBoundingBox.relativeTo(rootBoundingBox).center;
     let [bottom, top] = (0, lodash_1.partition)(labelInfo, info => { var _a; return ((_a = info.symbolBoundingBox) === null || _a === void 0 ? void 0 : _a.center.vertical) >= center.vertical; });
     root.style.position = 'relative';
-    if (bottom)
+    if (bottom.length > 0)
         drawLabelGroup(bottom, root, rootBoundingBox, "down");
-    if (top)
+    if (top.length > 0)
         drawLabelGroup(top, root, rootBoundingBox, "up");
     (0, utils_1.resetVisibility)(root, visibility);
 }

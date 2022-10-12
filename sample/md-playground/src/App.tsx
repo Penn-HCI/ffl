@@ -37,12 +37,12 @@ function App() {
           <Stack spacing={2} sx={{ flex: 1 }}>
             <div style={{ textAlign: 'start', marginBottom: '-8pt' }}>Markdown</div>
             <textarea
-              style={{ flex: 3, resize: 'none', overflow: 'auto' }}
+              style={{ flex: 4, resize: 'none', overflow: 'auto' }}
               value={mdSrc} onChange={(e) => setMdSrc(e.target.value)}
             />
             <div style={{ textAlign: 'start', marginTop: '8pt', marginBottom: '-8pt' }}>FFL</div>
             <textarea
-              style={{ flex: 1, resize: 'none', overflow: 'auto' }}
+              style={{ flex: 3, resize: 'none', overflow: 'auto' }}
               value={fflSrc} onChange={(e) => setFflSrc(e.target.value)}
             />
             {errMsg &&
@@ -50,7 +50,7 @@ function App() {
           </Stack>
           <Card sx={{ flex: 1, textAlign: 'start', overflow: 'auto', padding: '16pt' }}
             variant='outlined' className='markdown-body'>
-            {HTMLReactParser(render.current)}
+            <div dangerouslySetInnerHTML={{ __html: render.current }} />
           </Card>
         </Stack>
       </Container>

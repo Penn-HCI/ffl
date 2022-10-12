@@ -2,7 +2,7 @@ import katex, { KatexOptions, ParseError } from 'katex';
 import reexport from "./reexport";
 import * as grammar from "./grammar";
 import _, { partition } from "lodash";
-import { BoundingBox, asKaTeXVirtualNode, isServer, isWhitespace, mapGroup, merge, resetVisibility, setVisible, toHTMLElement, toKaTeXVirtualNode } from './utils';
+import { isServer, isWhitespace, resetVisibility, setVisible, toHTMLElement, toKaTeXVirtualNode, BoundingBox } from './utils';
 import * as labella from 'labella';
 import { TokenTree, parseAtomics } from './groupParser';
 import { v4 as uuidv4 } from 'uuid';
@@ -298,6 +298,7 @@ function renderToHTMLTree(expression: string, options?: KatexOptions): any {
   var htmlTree = reexport.katex.__renderToHTMLTree(expression, overrideOptions(options));
   var katexHtmlMain = htmlTree.children.find((span: any) => span.classes.includes("katex-html"));
   transformKaTeXHTML(htmlTree, katexHtmlMain);
+  htmlTree.style.display = 'inline-block';
   return htmlTree;
 }
 
@@ -314,7 +315,7 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
   foreignObjects.forEach((node) => labelsOverlay.appendChild(node));
   root.prepend(labelsOverlay);
 
-  let boundingBoxes = labelInfo.map((info) => {
+  let boundingRects = labelInfo.map((info) => {
     var range = document.createRange();
     range.selectNode(info.labelText);
     return range.getBoundingClientRect();
@@ -323,7 +324,7 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
     minPos: null, nodeSpacing: 12
   }).nodes(labelInfo.map((info, idx) => new labella.Node(
     info.symbolBoundingBox!.center.horizontal,
-    boundingBoxes[idx].width,
+    boundingRects[idx].width,
     info
   ))).compute();
   let nodes = force.nodes();
@@ -337,7 +338,7 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
   renderer.layout(nodes);
 
   var viewBox = BoundingBox.of(...nodes.map((node, idx) => {
-    let bBox: any = boundingBoxes[idx];
+    let bBox: any = boundingRects[idx];
     return new BoundingBox({
       top: node.y! - bBox.height,
       left: node.x! - bBox.width / 2,
@@ -346,14 +347,18 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
     });
   }), rootBoundingBox.relativeTo(rootBoundingBox))!;
 
+  let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
   if (direction === "up") {
-    root.style.setProperty('marginTop', `${-viewBox.top}`)
+    let style = root.getAttribute('style');
+    if (style && !style.endsWith(';')) style += ';';
+    root.setAttribute('style', style + ` margin-top: ${-viewBox.top - nodeHeight * 1.5}px;`);
   }
   if (direction === "down") {
-    root.style.setProperty('marginBottom', `${viewBox.bottom - rootBoundingBox.height}`)
+    let style = root.getAttribute('style');
+    if (style && !style.endsWith(';')) style += ';';
+    root.setAttribute('style', style + ` margin-bottom: ${viewBox.bottom - rootBoundingBox.height + nodeHeight * 2}px;`);
   }
 
-  let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
   Object.assign(labelsOverlay.style, {
     position: 'absolute',
     top: viewBox.top - nodeHeight / 2 + anchorLineY,
@@ -368,7 +373,8 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
     foreignObjects[idx].setAttribute('overflow', 'visible');
     foreignObjects[idx].setAttribute('x', `${node.x! - node.dx! / 2}`);
     foreignObjects[idx].setAttribute('width', `${node.dx!}`);
-    foreignObjects[idx].setAttribute('y', `${anchorLineY + node.y! - node.dy! / 2}`);
+    foreignObjects[idx].setAttribute('y', `${anchorLineY + node.y! -
+      (direction === 'up' ? boundingRects[idx].height - node.dy!: node.dy! / 2)}`);
     foreignObjects[idx].setAttribute('height', `${node.dy!}`);
     if (direction == 'down') foreignObjects[idx].setAttribute('dominant-baseline', `hanging`);
     let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -376,7 +382,7 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
       `M ${node.data.symbolBoundingBox.center.horizontal} `
       + `${direction == "up" ? node.data.symbolBoundingBox.top - node.dy! / 2 : node.data.symbolBoundingBox.bottom - anchorLineY} L`
       + renderer.generatePath(node).slice(1));
-    path.setAttribute('transform', `translate(0, ${anchorLineY - (direction == "up" ? 0 : node.dy! / 2)})`);
+    path.setAttribute('transform', `translate(0, ${anchorLineY - (direction == "up" ? 0 : 0)})`);
     Object.assign(path.style, { stroke: 'black', fill: 'none' });
     labelsOverlay.appendChild(path);
   });
@@ -399,8 +405,8 @@ function drawLabels(labels: { selector: string, label: string }[], root: HTMLEle
   let center = rootBoundingBox.relativeTo(rootBoundingBox).center;
   let [bottom, top] = partition(labelInfo, info => info.symbolBoundingBox?.center.vertical! >= center.vertical);
   root.style.position = 'relative';
-  if (bottom) drawLabelGroup(bottom, root, rootBoundingBox, "down");
-  if (top) drawLabelGroup(top, root, rootBoundingBox, "up");
+  if (bottom.length > 0) drawLabelGroup(bottom, root, rootBoundingBox, "down");
+  if (top.length > 0) drawLabelGroup(top, root, rootBoundingBox, "up");
   resetVisibility(root, visibility);
 }
 
