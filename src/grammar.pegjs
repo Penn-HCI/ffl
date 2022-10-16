@@ -46,7 +46,7 @@ attribute = k:styleKey __ ':' __ v:styleValue __ { return { [k.trim()]: v.trim()
 // e.g. currently `label` does not allow ";" or "}" because of how generic values are parsed
 
 styleKey = $('--'? ident)
-styleValue = $(!(';' / '}') .)+
+styleValue = $("\\;" / (!(';' / '}') .))+
 
 ident = $(alpha alnum*)
 
