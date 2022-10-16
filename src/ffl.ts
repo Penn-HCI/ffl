@@ -96,6 +96,25 @@ function markMatches(src: TokenTree[], matchers: { key: string, matcher: TokenTr
   return latexWithMarkers;
 }
 
+// note that this mutates the array
+const __markConstants = function (latex: TokenTree): any[] {
+  var tree = !Array.isArray(latex) ? [latex] : latex;
+  for (var i = 0; i < tree.length; i++) {
+    if (Array.isArray(tree[i])) {
+      tree[i] = __markConstants(tree[i])
+    } else {
+      if ((tree[i] as string).match(/^\d+$/g)) {
+        tree.splice(i, 0, fflMarker("startStyle{constant}"))
+        do {
+          i++;
+        } while ((tree[i] as string).match(/^\d+$/g))
+        tree.splice(i, 0, fflMarker("endStyle{constant}"))
+      }
+    }
+  }
+  return tree;
+}
+
 function overrideOptions(options: KatexOptions | undefined): KatexOptions {
   options ??= { macros: {} }
   return {
@@ -171,7 +190,8 @@ function overrideOptions(options: KatexOptions | undefined): KatexOptions {
           }
         }
         let _latexWithMarkers = deepFlattenAndMark(latexWithMarkers);
-        latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
+        _latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
+        latexWithMarkers = __markConstants(_latexWithMarkers);
         // the inclusion of spaces as tokens is inconsistent,
         // we need additional spaces since we are concat'ing back to string
         for (var i = 1; i < latexWithMarkers.length; i++) {
@@ -195,7 +215,12 @@ function overrideOptions(options: KatexOptions | undefined): KatexOptions {
                     return `.${fflLitSelectors[idx++].key}`;
                   }
                   if (singleSelector.type == 'class') {
-                    return `.${singleSelector.str}`;
+                    let className = singleSelector.str;
+                    switch (className) {
+                      case 'operator': className = 'mbin'; break;
+                      default: break;
+                    }
+                    return `.${className}`;
                   }
                 }
               ).join('')
@@ -374,7 +399,7 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelText:
     foreignObjects[idx].setAttribute('x', `${node.x! - node.dx! / 2}`);
     foreignObjects[idx].setAttribute('width', `${node.dx!}`);
     foreignObjects[idx].setAttribute('y', `${anchorLineY + node.y! -
-      (direction === 'up' ? boundingRects[idx].height - node.dy!: node.dy! / 2)}`);
+      (direction === 'up' ? boundingRects[idx].height - node.dy! : node.dy! / 2)}`);
     foreignObjects[idx].setAttribute('height', `${node.dy!}`);
     if (direction == 'down') foreignObjects[idx].setAttribute('dominant-baseline', `hanging`);
     let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');

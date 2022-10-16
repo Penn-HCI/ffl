@@ -118,6 +118,25 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny) {
     // How to distinguish macros with v.s. w/o argument
     return latexWithMarkers;
 }
+// note that this mutates the array
+const __markConstants = function (latex) {
+    var tree = !Array.isArray(latex) ? [latex] : latex;
+    for (var i = 0; i < tree.length; i++) {
+        if (Array.isArray(tree[i])) {
+            tree[i] = __markConstants(tree[i]);
+        }
+        else {
+            if (tree[i].match(/^\d+$/g)) {
+                tree.splice(i, 0, fflMarker("startStyle{constant}"));
+                do {
+                    i++;
+                } while (tree[i].match(/^\d+$/g));
+                tree.splice(i, 0, fflMarker("endStyle{constant}"));
+            }
+        }
+    }
+    return tree;
+};
 function overrideOptions(options) {
     options !== null && options !== void 0 ? options : (options = { macros: {} });
     return Object.assign(Object.assign({}, options), { throwOnError: false, macros: Object.assign(Object.assign({}, options.macros), { "\\ffl": (context) => {
@@ -190,7 +209,8 @@ function overrideOptions(options) {
                     }
                 }
                 let _latexWithMarkers = deepFlattenAndMark(latexWithMarkers);
-                latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
+                _latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
+                latexWithMarkers = __markConstants(_latexWithMarkers);
                 // the inclusion of spaces as tokens is inconsistent,
                 // we need additional spaces since we are concat'ing back to string
                 for (var i = 1; i < latexWithMarkers.length; i++) {
@@ -211,7 +231,14 @@ function overrideOptions(options) {
                             return `.${fflLitSelectors[idx++].key}`;
                         }
                         if (singleSelector.type == 'class') {
-                            return `.${singleSelector.str}`;
+                            let className = singleSelector.str;
+                            switch (className) {
+                                case 'operator':
+                                    className = 'mbin';
+                                    break;
+                                default: break;
+                            }
+                            return `.${className}`;
                         }
                     }).join('')).map((grpStr) => `.ffl-${sectionId} ${grpStr}.visible`).join(', ');
                     // preprocess labels here
