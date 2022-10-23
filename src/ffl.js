@@ -120,17 +120,18 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny) {
 }
 // note that this mutates the array
 const __markConstants = function (latex) {
+    var _a, _b;
     var tree = !Array.isArray(latex) ? [latex] : latex;
     for (var i = 0; i < tree.length; i++) {
         if (Array.isArray(tree[i])) {
             tree[i] = __markConstants(tree[i]);
         }
         else {
-            if (tree[i].match(/^\d+$/g)) {
+            if (((_a = tree[i]) !== null && _a !== void 0 ? _a : '').match(/^\d+$/g)) {
                 tree.splice(i, 0, fflMarker("startStyle{constant}"));
                 do {
                     i++;
-                } while (tree[i].match(/^\d+$/g));
+                } while (((_b = tree[i]) !== null && _b !== void 0 ? _b : '').match(/^\d+$/g));
                 tree.splice(i, 0, fflMarker("endStyle{constant}"));
             }
         }
@@ -264,8 +265,9 @@ function overrideOptions(options) {
             } }) });
 }
 function getFFLMarker(node) {
+    var _a, _b;
     if (['mord', 'text'].every((name) => { var _a; return ((_a = node === null || node === void 0 ? void 0 : node.classes) !== null && _a !== void 0 ? _a : []).includes(name); })
-        && node.children[0].text.startsWith(fflPrefix)) {
+        && ((_b = (_a = node.children[0]) === null || _a === void 0 ? void 0 : _a.text) !== null && _b !== void 0 ? _b : '').startsWith(fflPrefix)) {
         let ffl = node.children[0].text.replace(new RegExp(`^${fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
         let argIdx = ffl.indexOf("{");
         return {

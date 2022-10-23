@@ -21,9 +21,13 @@ The $\LaTeX$ string should generally match what your write in LaTeX, while you c
 
 #### Selector Combinators <sup>*_<span style="font-variant:small-caps;">and</span>_ has higher precedence than _<span style="font-variant:small-caps;">or</span>_</sup>
 ##### _<span style="font-variant:small-caps;">and</span>_ Combinator - `⎵` (space)
-_<span style="font-variant:small-caps;">selector</span>_` `_<span style="font-variant:small-caps;">selector</span>_
+_<span style="font-variant:small-caps;">selector</span>_` `_<span style="font-variant:small-caps;">selector</span>_  
+
+For example, `$x_\?$ .constant` would only select a constant subscript under $x$ (e.g. $1$ in $x_1$ but not $n$ in $x_n$).
 ##### _<span style="font-variant:small-caps;">or</span>_ Combinator - `,`
-_<span style="font-variant:small-caps;">selector</span>_`,`_<span style="font-variant:small-caps;">selector</span>_
+_<span style="font-variant:small-caps;">selector</span>_`,`_<span style="font-variant:small-caps;">selector</span>_  
+
+For example, `$x$, $y$` would only select any $x$ and any $y$. It is the same as writing the same style block for both selectors.
 ### Attributes
 #### CSS Attributes
 We expect most basic [CSS properties](https://www.w3schools.com/cssref/) as _<span style="font-variant:small-caps;">attribute-key</span>s_ and _<span style="font-variant:small-caps;">value</span>s_ to work.

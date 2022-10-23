@@ -103,11 +103,11 @@ const __markConstants = function (latex: TokenTree): any[] {
     if (Array.isArray(tree[i])) {
       tree[i] = __markConstants(tree[i])
     } else {
-      if ((tree[i] as string).match(/^\d+$/g)) {
+      if ((tree[i] as string ?? '').match(/^\d+$/g)) {
         tree.splice(i, 0, fflMarker("startStyle{constant}"))
         do {
           i++;
-        } while ((tree[i] as string).match(/^\d+$/g))
+        } while ((tree[i] as string ?? '').match(/^\d+$/g))
         tree.splice(i, 0, fflMarker("endStyle{constant}"))
       }
     }
@@ -257,7 +257,7 @@ function overrideOptions(options: KatexOptions | undefined): KatexOptions {
 
 function getFFLMarker(node: any): any {
   if (['mord', 'text'].every((name) => (node?.classes ?? []).includes(name))
-    && node.children[0].text.startsWith(fflPrefix)) {
+    && (node.children[0]?.text ?? '').startsWith(fflPrefix)) {
     let ffl = node.children[0].text.replace(new RegExp(`^${fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
     let argIdx = ffl.indexOf("{");
     return {
@@ -464,6 +464,7 @@ class ffl implements katex {
     }
   }
 
+  // can be used to pre-validate
   static parseFFL(ffl: string) {
     return grammar.parse(ffl, { startRule: "blocks" });
   }

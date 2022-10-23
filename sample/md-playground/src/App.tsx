@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import 'github-markdown-css/github-markdown.css';
-import { Card, Container, MenuItem, Select, Stack } from '@mui/material';
+import { Card, Container, CssBaseline, MenuItem, Select, Stack } from '@mui/material';
 import MarkdownIt from 'markdown-it';
 import * as ffl from 'ffl';
 import { GrammarError } from 'peggy';
@@ -46,12 +46,14 @@ function App() {
               value={mdSrc} onChange={(e) => setMdSrc(e.target.value)}
             />
             <div style={{ textAlign: 'start', marginTop: '8pt', marginBottom: '-8pt' }}>FFL</div>
-            <Select label='Vector Notation' sx={{ textAlign: 'left' }}
-              name="vec" id="vec" size='small' variant='standard'
-              value={vecMode} onChange={(e) => setVecMode(e.target.value)}>
-              <MenuItem value="arrow">Arrow (<span dangerouslySetInnerHTML={{ __html: md.renderInline('$\\vec{v}$') }} />)</MenuItem>
-              <MenuItem value="bold">Bold (<span dangerouslySetInnerHTML={{ __html: md.renderInline('$\\boldsymbol{v}$') }} />)</MenuItem>
-            </Select>
+            <div style={{ display: 'flex' }}>
+              <Select label='Vector Notation'
+                name="vec" id="vec" size='small' sx={{ textAlign: 'left', flex: 1 }}
+                value={vecMode} onChange={(e) => setVecMode(e.target.value)}>
+                <MenuItem value="arrow">Arrow (<span dangerouslySetInnerHTML={{ __html: md.renderInline('$\\vec{v}$') }} />)</MenuItem>
+                <MenuItem value="bold">Bold (<span dangerouslySetInnerHTML={{ __html: md.renderInline('$\\boldsymbol{v}$') }} />)</MenuItem>
+              </Select>
+            </div>
             <textarea
               style={{ flex: 3, resize: 'none', overflow: 'auto' }}
               value={fflSrc} onChange={(e) => setFflSrc(e.target.value)}
