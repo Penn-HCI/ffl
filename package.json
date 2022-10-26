@@ -8,6 +8,7 @@
     "@types/lodash": "^4.14.184",
     "@types/sanitize-html": "^2.6.2",
     "@types/typescript": "^2.0.0",
+    "@types/uuid": "^8.3.4",
     "katex": "^0.16.2",
     "labella": "^1.1.4",
     "lodash": "^4.17.21",
@@ -21,7 +22,7 @@
     "build": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs -o src/grammar.ts src/grammar.pegjs && npx tsc",
     "prepublish": "npm run build"
   },
-  "main": "ffl.js",
+  "main": "dist/ffl.js",
   "directories": {
     "src": "src"
   },

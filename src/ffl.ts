@@ -9,7 +9,7 @@ import {
 } from './styleMarkers';
 import { drawLabels } from './labels';
 
-function __tryTokenize(selector: string, options): string[] {
+function __tryTokenize(selector: string, options: KatexOptions): string[] {
   let toks: any[] = [];
   try {
     katex.renderToString(`\\fflSelectorTokenizer{${selector}}`, {
@@ -181,7 +181,7 @@ function renderToHTMLTree(ffl: string, expression: string, options?: KatexOption
     if (options?.throwOnError) {
       throw err;
     } else {
-      return katex.__renderToHTMLTree(expression, options);
+      return katex.__renderToHTMLTree(expression, options ?? {});
     }
   }
   var parsedFFL = grammar.parse(ffl, { startRule: "blocks" });
@@ -196,7 +196,7 @@ function renderToHTMLTree(ffl: string, expression: string, options?: KatexOption
  * labels are only supported when running on browser client
  * TODO: disable labels for inline?
  */
-class ffl implements katex {
+class ffl {
   static render(latex: string, ffl: string, baseNode: HTMLElement, options?: KatexOptions): void {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
     let htmlNode = htmlTree.toNode();

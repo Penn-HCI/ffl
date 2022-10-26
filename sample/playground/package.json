@@ -13,7 +13,7 @@
     "@types/node": "^16.11.64",
     "@types/react": "^18.0.21",
     "@types/react-dom": "^18.0.6",
-    "ffl": "file:../..",
+    "ffl": "https://github.com/wu000168/ffl",
     "interweave": "^13.0.0",
     "node-polyfill-webpack-plugin": "^2.0.1",
     "react": "^18.2.0",

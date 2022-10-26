@@ -2,7 +2,7 @@ import { BoundingBox, resetVisibility, setVisible, toHTMLElement } from "./utils
 import * as labella from 'labella';
 import { partition } from "lodash";
 
-function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelElement: HTMLElement }[],
+function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelElement: HTMLElement | Text }[],
     root: HTMLElement, rootBoundingBox: BoundingBox, direction?: "up" | "down") {
 
     var labelsOverlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
