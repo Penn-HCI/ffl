@@ -1,5 +1,6 @@
 {{
     import { merge } from "./utils";
+    import sanitizeHtml from 'sanitize-html';
 }}
 
 blocks = __ bs:(block __)* { return bs.map((b : [any]) => b[0]); }
@@ -40,13 +41,26 @@ attributes = ha:attribute ta:(';' __ @attribute)* ';'?{
     }, {})
 }
 
-// PEG has no backtracking, need to figure out how to allow '}' in there
-attribute = k:styleKey __ ':' __ v:styleValue __ { return { [k.trim()]: v.trim() }; }
-// should we specify syntax for special attributes here?
-// e.g. currently `label` does not allow ";" or "}" because of how generic values are parsed
+attribute = fflAttribute / cssAttribute
+
+fflAttribute = labelProp
+
+labelProp = 'label' __ ':' __ v:labelValue __ { return { label: v }; }
+labelValue = "html(" __ v:qString __ ")" { return { renderType: "html", value: sanitizeHtml(v) }; }
+    // / "md(" _ v:qString _ ")" { return { renderType: "markdown", value: v }; }
+    / v:styleValue { return { renderType: "plain", value: v }; }
+
+qString = doubleQuoteString / singleQuoteString
+doubleQuoteString = '"' s:$('\\"' / (!'"' .))* '"' { return s.replaceAll('\\"', '"') }
+// TODO: should single quote ignore escapes?
+singleQuoteString = '\'' s:$('\\\'' / (!'\'' .))* '\'' { return s.replaceAll('\\\'', '\'') }
+
+// CSS attribute syntax is not specified here.
+// Any parsing issue should be fixed as they come up
+cssAttribute = k:styleKey __ ':' __ v:styleValue __ { return { [k.trim()]: v.trim() }; }
 
 styleKey = $('--'? ident)
-styleValue = $("\\;" / (!(';' / '}') .))+
+styleValue = $qString / $("\\;" / (!(';' / '}') .))+
 
 ident = $(alpha alnum*)
 
