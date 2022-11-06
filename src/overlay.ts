@@ -1,6 +1,6 @@
 import { BoundingBox, resetVisibility, setVisible, toHTMLElement } from "./utils";
 import * as labella from 'labella';
-import { max, partition } from "lodash";
+import { max, over, partition } from "lodash";
 import { KatexOptions } from "katex";
 declare function renderMathInElement(elem: Element, options?: KatexOptions): string;
 
@@ -111,39 +111,32 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
         path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
         Object.assign(path.style, { stroke: 'black', fill: 'none' });
         labelsOverlay.appendChild(path);
-        // let bracket: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        // let yTight = direction === 'up' ? boundingRects[idx].top : boundingRects[idx].bottom;
-        // bracket.setAttribute('d', `
-        //     M${node.x! - node.dx! / 2} ${yTight}
-        //     V${anchorLineY}
-        //     H${node.x! + node.dx! / 2}
-        //     V${yTight}
-        // `);
-        // Object.assign(bracket.style, { stroke: 'black', fill: 'none' });
-        // bracket.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
-        // labelsOverlay.appendChild(bracket);
     });
 }
 
+const maxGap = 32;
+
 function firstAdjacent(elements: Element[]): Element[] {
-    const maxGap = 32;
     let ret: Element[] = [];
     if (elements.length > 0) {
         let outerBoundingBox = new BoundingBox(elements[0].getBoundingClientRect());
         ret.push(elements[0]);
         for (var i = 1; i < elements.length; i++) {
             let elemBoundingBox = elements[i].getBoundingClientRect();
-            if (!(outerBoundingBox.left - elemBoundingBox.right > maxGap
-                || elemBoundingBox.left - outerBoundingBox.right > maxGap
-                || outerBoundingBox.top - elemBoundingBox.bottom > maxGap
-                || elemBoundingBox.top - outerBoundingBox.bottom > maxGap
-            )) ret.push(elements[i]);
+            if (isAdjacent(outerBoundingBox, elemBoundingBox, maxGap))
+                ret.push(elements[i]);
         }
     }
     return ret;
 }
 
-export function drawLabels(labels: { selector: string, label: any }[], root: HTMLElement) {
+function isAdjacent(a: DOMRect | BoundingBox, b: DOMRect | BoundingBox, maxGap: number) {
+    return !(a.left - b.right > maxGap || b.left - a.right > maxGap
+        || a.top - b.bottom > maxGap || b.top - a.bottom > maxGap);
+}
+
+export type LabelInfo = { selector: string, label: any }[];
+export function drawLabels(labels: LabelInfo, root: HTMLElement) {
     // need to make sure element is rendered to find the bounding box
     let visibility = setVisible(root);
     try {
@@ -177,6 +170,75 @@ export function drawLabels(labels: { selector: string, label: any }[], root: HTM
         root.style.position = 'relative';
         if (bottom.length > 0) drawLabelGroup(bottom, root, rootBoundingBox, "down");
         if (top.length > 0) drawLabelGroup(top, root, rootBoundingBox, "up");
+    } finally {
+        resetVisibility(root, visibility);
+    }
+}
+
+
+
+function groupByAdjacent(elements: Element[]): Element[][] {
+    let ret: Element[][] = [];
+    if (elements.length > 0) {
+        ret.push([elements[0]]);
+        for (var i = 1; i < elements.length; i++) {
+            let elemBoundingBox = elements[i].getBoundingClientRect();
+            var foundGroup = false;
+            for (var j = 0; i < ret.length; j++) {
+                if (ret[j].some(br => // could be optimized by saving the outer rects
+                    isAdjacent(br.getBoundingClientRect(), elemBoundingBox, maxGap))) {
+                    ret[j].push(elements[i]);
+                    foundGroup = true;
+                }
+            }
+            if (!foundGroup) ret.push([elements[i]]);
+        }
+    }
+    return ret;
+}
+
+
+export type BackgroundInfo = { selector: string, backgroundColor: any }[];
+export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement) {
+    // need to make sure element is rendered to find the bounding box
+    let visibility = setVisible(root);
+    try {
+        let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
+        var overlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        Object.assign(overlay.style, {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: rootBoundingBox.width,
+            height: rootBoundingBox.height
+        });
+        overlay.setAttribute('viewBox', `${0} ${0}
+            ${rootBoundingBox.width} ${rootBoundingBox.height}`);
+
+        root.style.position = 'relative';
+        backgroundInfo.forEach(({ selector, backgroundColor }) =>
+            groupByAdjacent(
+                [...root.querySelectorAll(selector).values()].sort(
+                    (a, b) => {
+                        let ba: DOMRect = a.getBoundingClientRect(), bb: DOMRect = b.getBoundingClientRect();
+                        return ba.left - bb.left || ba.top - bb.top;
+                    }
+                )
+            ).map(group => {
+                var bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                bgRect.setAttribute('stroke', 'none');
+                bgRect.setAttribute('fill', backgroundColor);
+                let bgRectDim = BoundingBox.of(
+                    ...group.map(node => new BoundingBox(node.getBoundingClientRect()))
+                )!.relativeTo(rootBoundingBox);
+                bgRect.setAttribute('x', `${bgRectDim.left}`);
+                bgRect.setAttribute('y', `${bgRectDim.top}`);
+                bgRect.setAttribute('width', `${bgRectDim.width}`);
+                bgRect.setAttribute('height', `${bgRectDim.height}`);
+                return bgRect;
+            }).forEach(bgRect => overlay.appendChild(bgRect))
+        );
+        root.prepend(overlay);
     } finally {
         resetVisibility(root, visibility);
     }

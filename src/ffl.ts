@@ -7,7 +7,7 @@ import {
   markClasses, flatten, markMatches, markConstants,
   fflMarker, fflPrefix, getFFLMarker
 } from './styleMarkers';
-import { drawLabels } from './labels';
+import { BackgroundInfo, drawBackground, drawLabels, LabelInfo } from './overlay';
 
 function __tryTokenize(selector: string, options: KatexOptions): string[] {
   let toks: any[] = [];
@@ -74,29 +74,27 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
         }
         var idx = 0;
         let style = fflParse.map(
-          (styleBlock: any) => {
-            return {
-              selectorString: styleBlock.selectors.map(
-                (selectorGroups: { type: 'literal' | 'class', str: string }[]) =>
-                  selectorGroups.map(
-                    (singleSelector: { type: string, str: string }) => {
-                      if (singleSelector.type == 'literal') {
-                        return `.${fflLitSelectors[idx++].key}`;
-                      }
-                      if (singleSelector.type == 'class') {
-                        let className = singleSelector.str;
-                        switch (className) {
-                          case 'operator': className = 'mbin'; break;
-                          default: break;
-                        }
-                        return `.${className}`;
-                      }
+          (styleBlock: any) => ({
+            selectorString: styleBlock.selectors.map(
+              (selectorGroups: { type: 'literal' | 'class', str: string }[]) =>
+                selectorGroups.map(
+                  (singleSelector: { type: string, str: string }) => {
+                    if (singleSelector.type === 'literal') {
+                      return `.${fflLitSelectors[idx++].key}`;
                     }
-                  ).join('')
-              ).map((grpStr: string) => `.ffl-${sectionKey} ${grpStr}.visible`).join(', '),
-              properties: styleBlock.attributes
-            }
-          }
+                    if (singleSelector.type === 'class') {
+                      let className = singleSelector.str;
+                      switch (className) {
+                        case 'operator': className = 'mbin'; break;
+                        default: break;
+                      }
+                      return `.${className}`;
+                    }
+                  }
+                ).join('')
+            ).map((grpStr: string) => `.ffl-${sectionKey} ${grpStr}.visible`).join(', '),
+            properties: styleBlock.attributes
+          })
         );
         return `{${fflMarker("startInvoc", sectionKey)}${fflMarker("style", JSON.stringify(style))}
           {${latexWithMarkers.join('')}}${fflMarker("endInvoc", sectionKey)}}`;
@@ -137,12 +135,24 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string
                 }
                 return `${k}: ${v};\n`;
               })}}`).join('\n')}</style>`));
-            (root.ffl ??= {}).labels = style.map(block => {
-              return {
-                selector: block.selectorString,
-                label: block.properties.label
+            (root.ffl ??= {}).labels = [];
+            root.ffl.backgroundColors = [];
+            style.forEach(block => {
+              let label = block.properties['label'];
+              if (label) {
+                root.ffl.labels.push({
+                  selector: block.selectorString,
+                  label: label
+                });
               }
-            }).filter(lb => lb.label);
+              let backgroundColor = block.properties['background-color'];
+              if (backgroundColor) {
+                root.ffl.backgroundColors.push({
+                  selector: block.selectorString,
+                  backgroundColor: backgroundColor
+                });
+              }
+            });
             break;
           case "startStyle":
             classesState.push(`${ffl.arg}`); break;
@@ -185,6 +195,13 @@ function renderToHTMLTree(ffl: string, expression: string, options?: KatexOption
   return htmlTree;
 }
 
+function drawOverlays(root: HTMLElement, labels?: LabelInfo, backgroundInfo?: BackgroundInfo) {
+  if (!isServer()) {
+    if (backgroundInfo) drawBackground(backgroundInfo, root);
+    if (labels) drawLabels(labels, root);
+  }
+}
+
 /**
  * labels are only supported when running on browser client
  * TODO: disable labels for inline?
@@ -193,9 +210,7 @@ class ffl {
   static render(latex: string, ffl: string, baseNode: HTMLElement, options?: KatexOptions): void {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
     let htmlNode = htmlTree.toNode();
-    if (typeof window !== "undefined" && htmlTree.ffl?.labels)
-      drawLabels(htmlTree.ffl.labels, htmlNode);
-
+    drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors);
     baseNode.textContent = "";
     baseNode.appendChild(htmlNode);
   }
@@ -204,11 +219,15 @@ class ffl {
   // (to be compatible VSCode which runs extension on server side)
   static renderToString(latex: string, ffl: string, options?: KatexOptions): string {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
-    if (!isServer() && htmlTree.ffl?.labels) {
-      let htmlNode = toHTMLElement(htmlTree.toMarkup());
-      drawLabels(htmlTree.ffl.labels, htmlNode);
-      var htmlStr = htmlNode.outerHTML;
-      htmlNode.remove();
+    if (!isServer()) {
+      let htmlNode;
+      try {
+        htmlNode = toHTMLElement(htmlTree.toMarkup());
+        drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors);
+        var htmlStr = htmlNode.outerHTML;
+      } finally {
+        if (htmlNode) htmlNode.remove();
+      }
       return htmlStr;
     } else {
       return htmlTree.toMarkup();
