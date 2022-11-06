@@ -4,7 +4,7 @@ import { isServer, isWhitespace, toHTMLElement, toKaTeXVirtualNode } from './uti
 import { parseAtomics } from './groupParser';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  deepFlattenAndMark, markMatches, markConstants,
+  markClasses, flatten, markMatches, markConstants,
   fflMarker, fflPrefix, getFFLMarker
 } from './styleMarkers';
 import { drawLabels } from './labels';
@@ -62,10 +62,7 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
           };
         });
         let latexWithMarkers = markMatches(latex, fflLitSelectors, '\\?', '\\*');
-
-        let _latexWithMarkers = deepFlattenAndMark(latexWithMarkers);
-        _latexWithMarkers = Array.isArray(_latexWithMarkers) ? _latexWithMarkers : [_latexWithMarkers];
-        latexWithMarkers = markConstants(_latexWithMarkers);
+        latexWithMarkers = flatten(markConstants(markClasses(latexWithMarkers))) as any[];
         // the inclusion of spaces as tokens is inconsistent,
         // we need additional spaces since we are concat'ing back to string
         for (var i = 1; i < latexWithMarkers.length; i++) {
@@ -75,45 +72,34 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
             latexWithMarkers.splice(i, 0, ' ');
           }
         }
-        /// register styles, CSS only for now
-        // this below needs to get clean up (too many nested call backs)
-        var labels: { selector: string, label: any }[] = [];
         var idx = 0;
-        let styleString = fflParse.map(
+        let style = fflParse.map(
           (styleBlock: any) => {
-            let classString = styleBlock.selectors.map((selectorGroups: { type: string, str: string }[]) =>
-              selectorGroups.map(
-                (singleSelector: { type: string, str: string }) => {
-                  if (singleSelector.type == 'literal') {
-                    return `.${fflLitSelectors[idx++].key}`;
-                  }
-                  if (singleSelector.type == 'class') {
-                    let className = singleSelector.str;
-                    switch (className) {
-                      case 'operator': className = 'mbin'; break;
-                      default: break;
+            return {
+              selectorString: styleBlock.selectors.map(
+                (selectorGroups: { type: 'literal' | 'class', str: string }[]) =>
+                  selectorGroups.map(
+                    (singleSelector: { type: string, str: string }) => {
+                      if (singleSelector.type == 'literal') {
+                        return `.${fflLitSelectors[idx++].key}`;
+                      }
+                      if (singleSelector.type == 'class') {
+                        let className = singleSelector.str;
+                        switch (className) {
+                          case 'operator': className = 'mbin'; break;
+                          default: break;
+                        }
+                        return `.${className}`;
+                      }
                     }
-                    return `.${className}`;
-                  }
-                }
-              ).join('')
-            ).map((grpStr: string) => `.ffl-${sectionKey} ${grpStr}.visible`).join(', ');
-            // preprocess labels here
-            return `${classString} {\n${Object.entries(styleBlock.attributes).map(([k, v]) => {
-              if (k == 'label') {
-                labels.push({
-                  selector: classString,
-                  label: v,
-                });
-                k = '--ffl-label';
-              }
-              return `${k}: ${Array.isArray(v) ? v.join(' ') : v};`;
-            }).join('\n')}\n}`;
+                  ).join('')
+              ).map((grpStr: string) => `.ffl-${sectionKey} ${grpStr}.visible`).join(', '),
+              properties: styleBlock.attributes
+            }
           }
-        ).join('\n');
-        return `{${fflMarker(`startInvoc{${sectionKey}}`)}${fflMarker(`styleString{${styleString}}`)}
-          ${labels.map(({ selector, label }) => fflMarker(`label{${selector}}{${JSON.stringify(label)}}`)).join('')}
-          {${latexWithMarkers.join('')}}${fflMarker(`endInvoc{${sectionKey}}`)}}`;
+        );
+        return `{${fflMarker("startInvoc", sectionKey)}${fflMarker("style", JSON.stringify(style))}
+          {${latexWithMarkers.join('')}}${fflMarker("endInvoc", sectionKey)}}`;
       },
       '\\fflMarker': (context: any) => {
         var arg = context.consumeArg();
@@ -139,18 +125,24 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string
       if (ffl = getFFLMarker(childNode)) {
         switch (ffl.command) {
           case "startInvoc": katexHtmlMain.classes.push(`ffl-${ffl.arg}`); break;
-          case "styleString":
+          case "style":
+            let style: any[] = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
             (root.children ??= []).push(
-              toKaTeXVirtualNode(`<style>${ffl.arg.replaceAll('\xA0', '\x20')}</style>`));
-            break;
-          case "label": // no grouping for now
-            (root.ffl ??= []).labels ??= [];
-            var labelArg = ffl.arg.replaceAll('\xA0', '\x20');
-            var delimIdx = labelArg.indexOf('}{'); // safe since first arg is a css query
-            root.ffl.labels.push({
-              selector: labelArg.slice(0, delimIdx),
-              label: JSON.parse(labelArg.slice(delimIdx + 2))
-            });
+              toKaTeXVirtualNode(`<style>${style.map(block => `
+                ${block.selectorString} {\n
+                  ${Object.entries(block.properties).map(([k, v]: [any, any]) => {
+                if (k === 'label') {
+                  k = '--ffl-label';
+                  v = `${v.renderType ?? ''}("${v.value ?? ''}")`;
+                }
+                return `${k}: ${v};\n`;
+              })}}`).join('\n')}</style>`));
+            (root.ffl ??= {}).labels = style.map(block => {
+              return {
+                selector: block.selectorString,
+                label: block.properties.label
+              }
+            }).filter(lb => lb.label);
             break;
           case "startStyle":
             classesState.push(`${ffl.arg}`); break;
@@ -175,17 +167,18 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string
 }
 
 function renderToHTMLTree(ffl: string, expression: string, options?: KatexOptions): any {
+  let __renderToHTMLTree = (window as any).renderToHTMLTree ?? katex.__renderToHTMLTree;
   try {
-    katex.__renderToHTMLTree(expression, { ...options, throwOnError: true });
+    __renderToHTMLTree(expression, { ...options, throwOnError: true });
   } catch (err) {
     if (options?.throwOnError) {
       throw err;
     } else {
-      return katex.__renderToHTMLTree(expression, options ?? {});
+      return __renderToHTMLTree(expression, options ?? {});
     }
   }
   var parsedFFL = grammar.parse(ffl, { startRule: "blocks" });
-  var htmlTree = katex.__renderToHTMLTree(`\\ffl{${expression}}`, overrideOptions(options, parsedFFL));
+  var htmlTree = __renderToHTMLTree(`\\ffl{${expression}}`, overrideOptions(options, parsedFFL));
   var katexHtmlMain = htmlTree.children.find((span: any) => span.classes.includes("katex-html"));
   transformKaTeXHTML(htmlTree, katexHtmlMain);
   htmlTree.style.display = 'inline-block';

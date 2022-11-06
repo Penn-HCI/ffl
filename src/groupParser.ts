@@ -1,4 +1,5 @@
 import { ParseError } from "katex";
+import _ from "lodash";
 
 export type TokenTree = string | TokenTree[];
 
@@ -31,37 +32,55 @@ function consumeAtomic(tokens: any[], startIdx: number, isOpenGroup: (token: any
     return [tryConsume, startIdx];
 }
 
-// this mutates tokens to group any command arguments and super/subscripts
-function fixGroups(tokens: TokenTree) {
-    if (Array.isArray(tokens)) {
-        for (var idx = 0; idx < tokens.length - 1; idx++) {
-            let tok = tokens[idx];
+const cmdArgLens: { [key: string]: number } = {
+    '^': 1,
+    '_': 1,
+    '\\text': 1,
+    '\\frac': 2,
+};
+
+function fixGroups(tokens: TokenTree): TokenTree {
+    let _tokens = _.cloneDeep(tokens);
+    if (Array.isArray(_tokens)) {
+        var ret: TokenTree[] = [];
+        var tok: TokenTree | undefined;
+        while (tok = _tokens.pop()) {
             if (Array.isArray(tok)) {
-                fixGroups(tok);
+                ret.push(fixGroups(tok));
             } else {
-                // how to get a list of macros and their # of args?
-                if (tok === '_' || tok === '^' || tok.startsWith('\\')) {
-                    if (!Array.isArray(tokens[idx + 1]))
-                        tokens[idx + 1] = [tokens[idx + 1]];
+                let numArgs = cmdArgLens[tok];
+                let expandedArgs: TokenTree[] = [];
+                for (var j = 0; j < (numArgs ?? 0); j++) {
+                    let arg = ret.pop() ?? [];
+                    let isCmd = typeof arg === 'string' && cmdArgLens[arg];
+                    if (!Array.isArray(arg)) arg = [arg];
+                    if (isCmd) {
+                        for (var k = 0; k < (isCmd ?? 0); j++) {
+                            let arg_ = ret.pop();
+                            if (arg_) arg.push(arg_);
+                        }
+                    }
+                    expandedArgs.unshift(arg);
                 }
-                if (tok === '\\frac') {
-                    if (!Array.isArray(tokens[idx + 2]))
-                        tokens[idx + 2] = [tokens[idx + 2]];
-                }
+                ret.push(...expandedArgs, tok);
             }
         }
+        return ret.reverse();
+    } else {
+        return _tokens;
     }
 }
 
 // this assumes token already passes parsing by katex
-export function parseAtomics(tokens: any[], isOpenGroup: (token: any) => boolean, isCloseGroup: (token: any) => boolean): any[] {
+export function parseAtomics(tokens: any[],
+    isOpenGroup: (token: any) => boolean, isCloseGroup: (token: any) => boolean
+): any[] {
     let children: any[] = [];
     for (var idx = 0; idx < tokens.length;) {
         let [tryConsume, contIdx] = consumeAtomic(tokens, idx, isOpenGroup, isCloseGroup);
         children.push(tryConsume);
         idx = contIdx;
     }
-    // could better to do this during parsing but we are not too worried about performance
-    fixGroups(children);
-    return children;
+    let tokenTree = fixGroups(children);
+    return Array.isArray(tokenTree) ? tokenTree : [tokenTree];
 }

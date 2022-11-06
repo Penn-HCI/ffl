@@ -263,7 +263,15 @@ function peg$parse(input: string, options?: IParseOptions) {
   const peg$c25 = peg$literalExpectation("html(", false);
   const peg$c26 = ")";
   const peg$c27 = peg$literalExpectation(")", false);
-  const peg$c28 = function(v: any): any { return { renderType: "html", value: sanitizeHtml(v) }; };
+  const peg$c28 = function(v: any): any { 
+      return { renderType: "html", value: sanitizeHtml(v,{
+          allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'img' ]),
+          allowedAttributes: { 
+              img: [ 'src', 'srcset', 'alt', 'title', 'width', 'height', 'loading' ],
+              '*': ["style"]
+          },
+      }) 
+  }; };
   const peg$c29 = function(v: any): any { return { renderType: "plain", value: v }; };
   const peg$c30 = "\"";
   const peg$c31 = peg$literalExpectation("\"", false);

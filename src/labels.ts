@@ -1,8 +1,8 @@
 import { BoundingBox, resetVisibility, setVisible, toHTMLElement } from "./utils";
 import * as labella from 'labella';
 import { max, partition } from "lodash";
-
-const MAX_WIDTH = '300px';
+import { KatexOptions } from "katex";
+declare function renderMathInElement(elem: Element, options?: KatexOptions): string;
 
 function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelElement: HTMLElement }[],
     root: HTMLElement, rootBoundingBox: BoundingBox, direction?: "up" | "down") {
@@ -11,17 +11,38 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
     let labels = labelInfo.map((nodeInfo) => {
         var foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
         foreignObject.setAttribute('xmlns', "http://www.w3.org/1999/xhtml");
+        if (renderMathInElement)
+            renderMathInElement(nodeInfo.labelElement, { displayMode: false });
         foreignObject.appendChild(nodeInfo.labelElement);
         return foreignObject;
     });
     labels.forEach((node) => labelsOverlay.appendChild(node));
     root.prepend(labelsOverlay);
 
-    let boundingRects = labelInfo.map((info, idx) => {
+    let boundingRects = labelInfo.map((info) => {
         var range = document.createRange();
         range.selectNode(info.labelElement);
         return range.getBoundingClientRect();
     });
+
+    const MAX_WIDTH = rootBoundingBox.width * 0.8;
+    labelInfo.forEach((e, i) => {
+        let width = boundingRects[i].width <= MAX_WIDTH
+            ? boundingRects[i].width
+            : MAX_WIDTH;
+        e.labelElement.setAttribute("style", `
+            inline-size: ${width}px;
+            max-width: ${MAX_WIDTH}px;
+            overflow-wrap: break-word;
+        `)
+    });
+
+    boundingRects = labelInfo.map((info) => {
+        var range = document.createRange();
+        range.selectNode(info.labelElement);
+        return range.getBoundingClientRect();
+    });
+
     let force = new labella.Force({
         minPos: null, nodeSpacing: 12
     }).nodes(labelInfo.map((info, idx) => new labella.Node(
@@ -80,11 +101,46 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
         labels[idx].setAttribute('height', `${boundingRects[idx].height}`);
         if (direction == 'down') labels[idx].setAttribute('dominant-baseline', `hanging`);
         let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', renderer.generatePath(node));
+        path.setAttribute('d',
+            `M ${node.data.symbolBoundingBox.center.horizontal} 
+               ${direction == "up"
+                ? node.data.symbolBoundingBox.top
+                : node.data.symbolBoundingBox.bottom - anchorLineY} L`
+            + renderer.generatePath(node).slice(1)
+        );
         path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
         Object.assign(path.style, { stroke: 'black', fill: 'none' });
         labelsOverlay.appendChild(path);
+        // let bracket: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        // let yTight = direction === 'up' ? boundingRects[idx].top : boundingRects[idx].bottom;
+        // bracket.setAttribute('d', `
+        //     M${node.x! - node.dx! / 2} ${yTight}
+        //     V${anchorLineY}
+        //     H${node.x! + node.dx! / 2}
+        //     V${yTight}
+        // `);
+        // Object.assign(bracket.style, { stroke: 'black', fill: 'none' });
+        // bracket.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
+        // labelsOverlay.appendChild(bracket);
     });
+}
+
+function firstAdjacent(elements: Element[]): Element[] {
+    const maxGap = 32;
+    let ret: Element[] = [];
+    if (elements.length > 0) {
+        let outerBoundingBox = new BoundingBox(elements[0].getBoundingClientRect());
+        ret.push(elements[0]);
+        for (var i = 1; i < elements.length; i++) {
+            let elemBoundingBox = elements[i].getBoundingClientRect();
+            if (!(outerBoundingBox.left - elemBoundingBox.right > maxGap
+                || elemBoundingBox.left - outerBoundingBox.right > maxGap
+                || outerBoundingBox.top - elemBoundingBox.bottom > maxGap
+                || elemBoundingBox.top - outerBoundingBox.bottom > maxGap
+            )) ret.push(elements[i]);
+        }
+    }
+    return ret;
 }
 
 export function drawLabels(labels: { selector: string, label: any }[], root: HTMLElement) {
@@ -93,13 +149,14 @@ export function drawLabels(labels: { selector: string, label: any }[], root: HTM
     try {
         let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
         let labelInfo = labels.map(({ selector, label }) => {
-            let elements: Element[] = [...root.querySelectorAll(selector)];
+            let elements: Element[] = firstAdjacent(
+                [...root.querySelectorAll(selector).values()].sort(
+                    (a, b) => {
+                        let ba: DOMRect = a.getBoundingClientRect(), bb: DOMRect = b.getBoundingClientRect();
+                        return ba.left - bb.left || ba.top - bb.top;
+                    }
+                ));
             let labelElement = document.createElement('div');
-            labelElement.setAttribute("style", `
-                inline-size: auto;
-                max-width: ${rootBoundingBox.width * 0.8}pt;
-                display: inline-block;
-            `);
             switch (label.renderType) {
                 case "html":
                     labelElement.appendChild(toHTMLElement(label.value));

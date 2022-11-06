@@ -46,7 +46,15 @@ attribute = fflAttribute / cssAttribute
 fflAttribute = labelProp
 
 labelProp = 'label' __ ':' __ v:labelValue __ { return { label: v }; }
-labelValue = "html(" __ v:qString __ ")" { return { renderType: "html", value: sanitizeHtml(v) }; }
+labelValue = "html(" __ v:qString __ ")" { 
+    return { renderType: "html", value: sanitizeHtml(v,{
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat([ 'img' ]),
+        allowedAttributes: { 
+            img: [ 'src', 'srcset', 'alt', 'title', 'width', 'height', 'loading' ],
+            '*': ["style"]
+        },
+    }) 
+}; }
     // / "md(" _ v:qString _ ")" { return { renderType: "markdown", value: v }; }
     / v:styleValue { return { renderType: "plain", value: v }; }
 

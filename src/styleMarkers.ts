@@ -5,9 +5,10 @@ import { isWhitespace } from "./utils";
 // TODO: lift out more shared constants
 export const fflPrefix = "\\ffl@";
 export const fflMarkerCmd = "\\fflMarker";
-export function fflMarker(s: string): string { return `${fflMarkerCmd}{${s}}`; }
+export type Command = "startInvoc" | "endInvoc" | "style" | "startStyle" | "endStyle";
+export function fflMarker(cmd: Command, ...arg: string[]): string { return `${fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`; }
 
-export function getFFLMarker(node: any): any {
+export function getFFLMarker(node: any): { command: Command, arg: any } | undefined {
     if (['mord', 'text'].every((name) => (node?.classes ?? []).includes(name))
         && (node.children[0]?.text ?? '').startsWith(fflPrefix)) {
         let ffl = node.children[0].text.replace(new RegExp(`^${fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
@@ -31,7 +32,7 @@ export function markMatches(src: TokenTree[], matchers: { key: string, matcher: 
     let matchTableState: { startIdx?: number, key: string, matcher: TokenTree }[] = [];
 
     function match(selector: TokenTree, target: TokenTree): boolean {
-        if ([target, wildcardSingle, wildcardAny].some(tok => selector === tok)) return true;
+        if ([target, wildcardSingle, wildcardAny].some(tok => _.isEqual(selector, tok))) return true;
         if (Array.isArray(selector) && Array.isArray(target)) {
             var matchState = [[...selector]]; // clones
             for (var i = 0; i < target.length; i++) {
@@ -89,7 +90,7 @@ export function markMatches(src: TokenTree[], matchers: { key: string, matcher: 
                 ...endStyles[i]
                     .map((e: { start: number, style: string }) => [e.start, e.style])
                     .sort().reverse().filter((v, i, a) => a.indexOf(v) === i)
-                    .map((val) => fflMarker(`endStyle{${val[1]}}`))
+                    .map((val) => fflMarker("endStyle", val[1] as string))
             );
         }
         if (startStyles[i]) {
@@ -97,7 +98,7 @@ export function markMatches(src: TokenTree[], matchers: { key: string, matcher: 
                 ...startStyles[i]
                     .map((e: { end: number, style: string }) => [e.end, e.style])
                     .sort().filter((v, i, a) => a.indexOf(v) === i)
-                    .map((val) => fflMarker(`startStyle{${val[1]}}`))
+                    .map((val) => fflMarker("startStyle", val[1] as string))
             );
         }
         if (source[i]) latexWithMarkers.push(source[i]);
@@ -108,52 +109,63 @@ export function markMatches(src: TokenTree[], matchers: { key: string, matcher: 
 }
 
 // note that this mutates the array
-export function markConstants(latex: TokenTree): any[] {
+export function markConstants(latex: TokenTree): TokenTree {
     var tree = !Array.isArray(latex) ? [latex] : latex;
     for (var i = 0; i < tree.length; i++) {
         if (Array.isArray(tree[i])) {
             tree[i] = markConstants(tree[i])
         } else {
             if ((tree[i] as string ?? '').match(/^\d+$/g)) {
-                tree.splice(i, 0, fflMarker("startStyle{constant}"))
+                tree.splice(i, 0, fflMarker("startStyle", "constant"))
                 do {
                     i++;
                 } while ((tree[i] as string ?? '').match(/^\d+$/g))
-                tree.splice(i, 0, fflMarker("endStyle{constant}"))
+                tree.splice(i, 0, fflMarker("endStyle", "constant"))
             }
         }
     }
     return tree;
 }
 
-export function deepFlattenAndMark(tokens: TokenTree): string | string[] {
-    if (Array.isArray(tokens)) {
-        var ret: string[] = [];
-        for (var i = 0; i < tokens.length; i++) {
-            let tok = tokens[i];
-            switch (tok) {
-                case "^":
-                    ret.push(tok, '{', fflMarker("startStyle{superscript}"),
-                        ...deepFlattenAndMark(tokens[++i]),
-                        fflMarker("endStyle{superscript}"), '}'); break;
-                case "_":
-                    ret.push(tok, '{', fflMarker("startStyle{subscript}"),
-                        ...deepFlattenAndMark(tokens[++i]),
-                        fflMarker("endStyle{subscript}"), '}'); break;
-                case "\\frac":
-                    ret.push(tok, '{', fflMarker("startStyle{numerator}"),
-                        ...deepFlattenAndMark(tokens[++i]),
-                        fflMarker("endStyle{numerator}"), '}');
-                    ret.push('{', fflMarker("startStyle{denominator}"),
-                        ...deepFlattenAndMark(tokens[++i]),
-                        fflMarker("endStyle{denominator}"), '}');
-                    break;
-                default:
-                    if (Array.isArray(tok)) ret.push('{', ...deepFlattenAndMark(tok), '}');
-                    else ret.push(deepFlattenAndMark(tok) as string);
+const classes: { [key: string]: string[] } = {
+    '^': ['superscript'],
+    '_': ['subscript'],
+    '\\text': ['text'],
+    '\\frac': ['numerator', 'denominator'],
+}
+
+export function markClasses(tokens: TokenTree): TokenTree {
+    let _tokens = _.cloneDeep(tokens);
+    if (Array.isArray(_tokens)) {
+        var ret: TokenTree[] = [];
+        var tok: TokenTree | undefined;
+        while (tok = _tokens.pop()) {
+            if (Array.isArray(tok)) {
+                ret.push(markClasses(tok));
+            } else {
+                let cmdClasses = classes[tok];
+                let expandedArgs: TokenTree[] = [];
+                for (var j = 0; j < (cmdClasses?.length ?? 0); j++) {
+                    let arg = ret.pop() ?? [];
+                    if (!Array.isArray(arg)) arg = [arg];
+                    expandedArgs.push([
+                        fflMarker("startStyle", cmdClasses[j]),
+                        ...arg,
+                        fflMarker("endStyle", cmdClasses[j])
+                    ]);
+                }
+                ret.push(...expandedArgs.reverse(), tok);
             }
         }
-        return ret;
+        return ret.reverse();
+    } else {
+        return _tokens;
+    }
+}
+
+export function flatten(tokens: TokenTree): string | string[] {
+    if (Array.isArray(tokens)) {
+        return ['{', ...tokens.map(flatten), '}'].flat();
     } else {
         return tokens;
     }
