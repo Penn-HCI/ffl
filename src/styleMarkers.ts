@@ -25,14 +25,17 @@ export function getFFLMarker(node: any): { command: Command, arg: any } | undefi
 }
 
 // TODO: this is inefficient, we need better representations
-export function markMatches(src: TokenTree[], matchers: { key: string, matcher: TokenTree[] }[], wildcardSingle: string, wildcardAny: string) {
+export function markMatches(src: TokenTree[],
+    matchers: { key: string, matcher: TokenTree[] }[],
+    wildcardSingle: string, wildcardAny: string, escapes: { [esc: string]: string }) {
     var source = _.cloneDeep(src);
     var startStyles: { [idx: number]: { end: number, style: string }[] } = {};
     var endStyles: { [idx: number]: { start: number, style: string }[] } = {};
     let matchTableState: { startIdx?: number, key: string, matcher: TokenTree }[] = [];
 
     function match(selector: TokenTree, target: TokenTree): boolean {
-        if ([target, wildcardSingle, wildcardAny].some(tok => _.isEqual(selector, tok))) return true;
+        if ([target, wildcardSingle, wildcardAny].some(tok => _.isEqual(selector, tok))
+            || _.isEqual(target, escapes[selector as string])) return true;
         if (Array.isArray(selector) && Array.isArray(target)) {
             var matchState = [[...selector]]; // clones
             for (var i = 0; i < target.length; i++) {
@@ -79,7 +82,7 @@ export function markMatches(src: TokenTree[], matchers: { key: string, matcher: 
                 });
         }
         if (Array.isArray(tok)) {
-            (source as any[])[idx] = markMatches(tok, matchers, wildcardSingle, wildcardAny)
+            (source as any[])[idx] = markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes)
         }
     }
     /// mark style groupings

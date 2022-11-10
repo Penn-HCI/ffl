@@ -61,7 +61,10 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
             matcher: parseAtomics(selectorTexts.filter(tok => !isWhitespace(tok)), isOpenGroup, isCloseGroup)
           };
         });
-        let latexWithMarkers = markMatches(latex, fflLitSelectors, '\\?', '\\*');
+        let latexWithMarkers = markMatches(latex, fflLitSelectors, '?', '*', {
+          '\\*': '*',
+          '\\?': '?'
+        });
         latexWithMarkers = flatten(markConstants(markClasses(latexWithMarkers))) as any[];
         // the inclusion of spaces as tokens is inconsistent,
         // we need additional spaces since we are concat'ing back to string
