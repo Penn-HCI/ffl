@@ -1,6 +1,6 @@
 {{
-    import { merge } from "../utils/common";
-    import sanitizeHtml from 'sanitize-html';
+import { merge } from "../utils/common";
+import sanitizeHtml from 'sanitize-html';
 }}
 
 blocks = __ bs:(block __)* { return bs.map((b : [any]) => b[0]); }
@@ -17,9 +17,10 @@ selectorsList = ds:(descendantGroup __ ',' __)* td:descendantGroup {
 }
 
 /// Selectors
-descendantGroup = ss:(selector __)+ {
-    return ss.map((s : any) => s[0]);
-} // >=1
+descendantGroup = s:selector { return [s] }
+    / "intersect" ("ion")? '(' __ ss:(selector __ ',' __)+ sse:selector ')' __ {
+        return [...ss.map((s : any) => s[0]), sse];
+    } // >=1
 
 selector = @(clazz / literal)
 
