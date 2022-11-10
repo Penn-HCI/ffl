@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { TokenTree } from "./groupParser";
-import { isWhitespace } from "./utils";
+import { isWhitespace } from "../utils/common";
 
 // TODO: lift out more shared constants
 export const fflPrefix = "\\ffl@";

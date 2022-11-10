@@ -6,7 +6,7 @@
 "use strict";
 
 
-    import { merge } from "./utils";
+    import { merge } from "../utils/common";
     import sanitizeHtml from 'sanitize-html';
 
 

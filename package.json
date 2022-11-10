@@ -19,8 +19,8 @@
     "uuid": "^9.0.0"
   },
   "scripts": {
-    "build": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs -o src/grammar.ts src/grammar.pegjs && npx tsc",
-    "watch": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs -o src/grammar.ts src/grammar.pegjs && npx tsc -w",
+    "build": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs -o src/language/grammar.ts src/language/grammar.pegjs && npx tsc",
+    "watch": "peggy --plugin ./node_modules/ts-pegjs/src/tspegjs -o src/language/grammar.ts src/language/grammar.pegjs && npx tsc -w",
     "prepublish": "npm run build"
   },
   "main": "./dist/ffl.js",

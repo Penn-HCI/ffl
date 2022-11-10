@@ -1,7 +1,9 @@
-import { BoundingBox, resetVisibility, setVisible, toHTMLElement } from "./utils";
 import * as labella from 'labella';
 import { max, over, partition } from "lodash";
 import { KatexOptions } from "katex";
+import { BoundingBox } from '../utils/boundingBox';
+import { resetVisibility, setVisible } from '../utils/visibility';
+import { toHTMLElement } from '../utils/dom';
 declare function renderMathInElement(elem: Element, options?: KatexOptions): string;
 
 function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelElement: HTMLElement }[],

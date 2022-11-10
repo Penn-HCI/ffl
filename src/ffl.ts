@@ -1,13 +1,14 @@
 import katex, { KatexOptions } from 'katex';
-import * as grammar from "./grammar";
-import { isServer, isWhitespace, toHTMLElement, toKaTeXVirtualNode } from './utils';
-import { parseAtomics } from './groupParser';
+import * as grammar from "./language/grammar";
+import { isServer, isWhitespace } from './utils/common';
+import { parseAtomics } from './language/groupParser';
 import { v4 as uuidv4 } from 'uuid';
 import {
   markClasses, flatten, markMatches, markConstants,
   fflMarker, fflPrefix, getFFLMarker
-} from './styleMarkers';
-import { BackgroundInfo, drawBackground, drawLabels, LabelInfo } from './overlay';
+} from './language/styleMarkers';
+import { BackgroundInfo, drawBackground, drawLabels, LabelInfo } from './render/overlay';
+import { toHTMLElement, toKaTeXVirtualNode } from './utils/dom';
 
 function __tryTokenize(selector: string, options: KatexOptions): string[] {
   let toks: any[] = [];
