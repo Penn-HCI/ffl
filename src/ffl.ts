@@ -1,4 +1,5 @@
 import katex, { KatexOptions } from 'katex';
+import _ from 'lodash';
 import * as grammar from "./language/grammar";
 import { isServer, isWhitespace } from './utils/common';
 import { parseAtomics } from './language/groupParser';
@@ -116,8 +117,10 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
   };
 }
 
+export const INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
-function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string[]) {
+function transformKaTeXHTML(root: any, katexHtmlMain: any,
+  classesState?: [style: string, instanceIdx: number][]) {
   if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
     classesState ??= [];
     if (katexHtmlMain.classes && !Array.isArray(katexHtmlMain.classes))
@@ -131,14 +134,17 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string
             let style: any[] = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
             (root.children ??= []).push(
               toKaTeXVirtualNode(`<style>${style.map(block => `
-                ${block.selectorString} {\n
-                  ${Object.entries(block.properties).map(([k, v]: [any, any]) => {
+${block.selectorString} {
+    ${Object.entries(block.properties).map(([k, v]: [any, any]) => {
                 if (k === 'label') {
                   k = '--ffl-label';
                   v = `${v.renderType ?? ''}("${v.value ?? ''}")`;
+                } else if (k === 'background-color') {
+                  k = '--ffl-background-color';
                 }
-                return `${k}: ${v};\n`;
-              })}}`).join('\n')}</style>`));
+                return `${k}: ${v};`;
+              })}
+}`).join('\n')}</style>`));
             (root.ffl ??= {}).labels = [];
             root.ffl.backgroundColors = [];
             style.forEach(block => {
@@ -159,8 +165,9 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string
             });
             break;
           case "startStyle":
-            classesState.push(`${ffl.arg}`); break;
-          case "endStyle": classesState.splice(classesState.indexOf(ffl.arg), 1); break;
+            classesState.push(ffl.arg.split('}{')); break;
+          case "endStyle":
+            classesState.splice(classesState.indexOf(ffl.arg.split('}{')), 1); break;
           case "endInvoc":
             // nothing to do here since we are using the descendant combinator
             break;
@@ -170,12 +177,26 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any, classesState?: string
         transformKaTeXHTML(root, childNode, classesState);
       }
     }
-    (katexHtmlMain.classes ??= []).push(...new Set(classesState));
-    // FIXME: this condition might not be exhaustive, need better way to find "contentful" elements
-    // the TODO above this function might be helpful. Worst case just remove the condition and label everything
-    if (['mord', 'mbin', 'vlist', 'mspace', 'mopen', 'mclose', 'mpunct', 'mrel', 'mop']
-      .some(cls => katexHtmlMain.classes?.includes(cls))) {
-      (katexHtmlMain.classes ??= []).push('visible');
+    if (classesState.length > 0) {
+      (katexHtmlMain.classes ??= []).push(...new Set(classesState.map(c => c[0])));
+      if (['mord', 'mbin', 'vlist', 'mspace', 'mopen', 'mclose', 'mpunct', 'mrel', 'mop']
+        .some(cls => katexHtmlMain.classes?.includes(cls))) {
+        (katexHtmlMain.classes ??= []).push('visible');
+      }
+      if (katexHtmlMain.setAttribute) {
+        katexHtmlMain.setAttribute(INSTANCE_DATA_ATTR, JSON.stringify(classesState));
+      } else {
+        let _toNode = katexHtmlMain.toNode;
+        katexHtmlMain.toNode = () => {
+          let node = _toNode.call(katexHtmlMain, "span")
+          node.setAttribute(INSTANCE_DATA_ATTR, JSON.stringify(classesState));
+          return node;
+        }
+        let _toMarkup = katexHtmlMain.toMarkup;
+        let _classesState = _.escape(JSON.stringify(classesState));
+        katexHtmlMain.toMarkup = () => _toMarkup.call(katexHtmlMain, "span").replace(/(?<!\\)>/,
+          ` ${INSTANCE_DATA_ATTR}="${_classesState}">`);
+      }
     }
   }
 }
@@ -219,8 +240,6 @@ class ffl {
     baseNode.appendChild(htmlNode);
   }
 
-  // TODO: defer label drawing to a <script> tag on client side
-  // (to be compatible VSCode which runs extension on server side)
   static renderToString(latex: string, ffl: string, options?: KatexOptions): string {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
     if (!isServer()) {

@@ -8,7 +8,7 @@ import { useRef, useState } from "react";
 import { GrammarError } from "peggy";
 
 function App() {
-  const [fflStr, setFFL] = useState("$x$ { color: blue; }\n$m_\\?$ { color: red; }\n.subscript { label : sub; }");
+  const [fflStr, setFFL] = useState("$x$ { color: blue; }\n$m_?$ { color: red; }\n.subscript { label : sub; }");
   const [texStr, setTeX] = useState("f(x)=\\frac{x}{m_0}+b");
   const prevHTML = useRef('');
   var renderHTML, errMsg;

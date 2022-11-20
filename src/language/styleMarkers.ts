@@ -24,14 +24,18 @@ export function getFFLMarker(node: any): { command: Command, arg: any } | undefi
     }
 }
 
-// TODO: this is inefficient, we need better representations
+export type IndexedInstance = [style: string, idx: number];
+type InstanceCounts = { [style: string]: number };
+
 export function markMatches(src: TokenTree[],
     matchers: { key: string, matcher: TokenTree[] }[],
-    wildcardSingle: string, wildcardAny: string, escapes: { [esc: string]: string }) {
+    wildcardSingle: string, wildcardAny: string, escapes: { [esc: string]: string },
+    instanceCounts?: InstanceCounts) {
     var source = _.cloneDeep(src);
     var startStyles: { [idx: number]: { end: number, style: string }[] } = {};
     var endStyles: { [idx: number]: { start: number, style: string }[] } = {};
     let matchTableState: { startIdx?: number, key: string, matcher: TokenTree }[] = [];
+    instanceCounts ??= {};
 
     function match(selector: TokenTree, target: TokenTree): boolean {
         if ([target, wildcardSingle, wildcardAny].some(tok => _.isEqual(selector, tok))
@@ -81,49 +85,70 @@ export function markMatches(src: TokenTree[],
                     });
                 });
         }
-        if (Array.isArray(tok)) {
-            (source as any[])[idx] = markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes)
+    }
+    // some duplicate work over here de-duping the match ranges
+    // could do this in the previous loop to optimize once finalized
+    // FIXME: this the finds the longest match starting at each idx
+    // this will not work if we add non-greedy matches
+    var styles: {
+        [start: number]: {
+            [style: string]: { instanceIdx: number, end: number }
+        }
+    } = {};
+    var markers: any[][] = [];
+    for (var idx = 0; idx <= source.length; idx++) {
+        (startStyles[idx] ?? []).forEach(({ style, end }) => {
+            instanceCounts![style] ??= 0;
+            styles[idx] ??= {};
+            Object.assign(styles[idx], {
+                [style]: { instanceIdx: instanceCounts![style]++ }
+            });
+            if (!styles[idx][style].end || end > styles[idx][style].end) styles[idx][style].end = end;
+        });
+        if (styles[idx]) {
+            Object.entries(styles[idx]).forEach(([style, { instanceIdx, end }]) => {
+                (markers[idx] ??= []).push(
+                    fflMarker("startStyle", style, instanceIdx.toString())
+                );
+                (markers[end] ??= []).unshift(
+                    fflMarker("endStyle", style, instanceIdx.toString())
+                );
+            });
         }
     }
-    /// mark style groupings
+
+    for (var idx = 0; idx < source.length; idx++) {
+        let tok = source[idx];
+        if (Array.isArray(tok)) {
+            (source as any[])[idx] =
+                markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts)
+        }
+    }
+
     var latexWithMarkers: any[] = [];
     for (var i = 0; i <= source.length; i++) {
-        if (endStyles[i]) {
-            latexWithMarkers.push(
-                ...endStyles[i]
-                    .map((e: { start: number, style: string }) => [e.start, e.style])
-                    .sort().reverse().filter((v, i, a) => a.indexOf(v) === i)
-                    .map((val) => fflMarker("endStyle", val[1] as string))
-            );
-        }
-        if (startStyles[i]) {
-            latexWithMarkers.push(
-                ...startStyles[i]
-                    .map((e: { end: number, style: string }) => [e.end, e.style])
-                    .sort().filter((v, i, a) => a.indexOf(v) === i)
-                    .map((val) => fflMarker("startStyle", val[1] as string))
-            );
-        }
+        if (markers[i]) latexWithMarkers.push(...markers[i]);
         if (source[i]) latexWithMarkers.push(source[i]);
     }
-    // FIXME: if this is right after a macro we should insert {} but be mindful of _/^
-    // How to distinguish macros with v.s. w/o argument
     return latexWithMarkers;
 }
 
 // note that this mutates the array
-export function markConstants(latex: TokenTree): TokenTree {
+export function markConstants(latex: TokenTree, count?: number): TokenTree {
     var tree = !Array.isArray(latex) ? [latex] : latex;
+    count ??= 0;
     for (var i = 0; i < tree.length; i++) {
         if (Array.isArray(tree[i])) {
-            tree[i] = markConstants(tree[i])
+            tree[i] = markConstants(tree[i], count)
         } else {
             if ((tree[i] as string ?? '').match(/^\d+$/g)) {
-                tree.splice(i, 0, fflMarker("startStyle", "constant"))
+                tree.splice(i, 0,
+                    fflMarker("startStyle", "constant", (count++).toString()))
                 do {
                     i++;
                 } while ((tree[i] as string ?? '').match(/^\d+$/g))
-                tree.splice(i, 0, fflMarker("endStyle", "constant"))
+                tree.splice(i, 0,
+                    fflMarker("endStyle", "constant", (count++).toString()))
             }
         }
     }
@@ -137,8 +162,9 @@ const classes: { [key: string]: string[] } = {
     '\\frac': ['numerator', 'denominator'],
 }
 
-export function markClasses(tokens: TokenTree): TokenTree {
+export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree {
     let _tokens = _.cloneDeep(tokens);
+    instanceCounts ??= {};
     if (Array.isArray(_tokens)) {
         var ret: TokenTree[] = [];
         var tok: TokenTree | undefined;
@@ -152,9 +178,11 @@ export function markClasses(tokens: TokenTree): TokenTree {
                     let arg = ret.pop() ?? [];
                     if (!Array.isArray(arg)) arg = [arg];
                     expandedArgs.push([
-                        fflMarker("startStyle", cmdClasses[j]),
+                        fflMarker("startStyle", cmdClasses[j],
+                            (instanceCounts[cmdClasses[j]] ??= 0).toString()),
                         ...arg,
-                        fflMarker("endStyle", cmdClasses[j])
+                        fflMarker("endStyle", cmdClasses[j],
+                            (instanceCounts[cmdClasses[j]]++).toString())
                     ]);
                 }
                 ret.push(...expandedArgs.reverse(), tok);

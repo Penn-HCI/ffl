@@ -1,10 +1,47 @@
 import * as labella from 'labella';
-import { max, over, partition } from "lodash";
+import _, { max, over, partition } from "lodash";
 import { KatexOptions } from "katex";
 import { BoundingBox } from '../utils/boundingBox';
 import { resetVisibility, setVisible } from '../utils/visibility';
 import { toHTMLElement } from '../utils/dom';
-declare function renderMathInElement(elem: Element, options?: KatexOptions): string;
+import { INSTANCE_DATA_ATTR } from '../ffl';
+import { IndexedInstance } from '../language/styleMarkers';
+declare function renderMathInElement(elem: Element, options?: any): string;
+const delimiterInElement = [{
+    left: "$$",
+    right: "$$",
+    display: true
+}, {
+    left: "\\(",
+    right: "\\)",
+    display: false
+},
+{ left: "$", right: "$", display: false },
+{
+    left: "\\begin{equation}",
+    right: "\\end{equation}",
+    display: true
+}, {
+    left: "\\begin{align}",
+    right: "\\end{align}",
+    display: true
+}, {
+    left: "\\begin{alignat}",
+    right: "\\end{alignat}",
+    display: true
+}, {
+    left: "\\begin{gather}",
+    right: "\\end{gather}",
+    display: true
+}, {
+    left: "\\begin{CD}",
+    right: "\\end{CD}",
+    display: true
+}, {
+    left: "\\[",
+    right: "\\]",
+    display: true
+}];
 
 function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelElement: HTMLElement }[],
     root: HTMLElement, rootBoundingBox: BoundingBox, direction?: "up" | "down") {
@@ -14,7 +51,7 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
         var foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
         foreignObject.setAttribute('xmlns', "http://www.w3.org/1999/xhtml");
         if (renderMathInElement)
-            renderMathInElement(nodeInfo.labelElement, { displayMode: false });
+            renderMathInElement(nodeInfo.labelElement, { delimiters: delimiterInElement });
         foreignObject.appendChild(nodeInfo.labelElement);
         return foreignObject;
     });
@@ -144,13 +181,9 @@ export function drawLabels(labels: LabelInfo, root: HTMLElement) {
     try {
         let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
         let labelInfo = labels.map(({ selector, label }) => {
-            let elements: Element[] = firstAdjacent(
-                [...root.querySelectorAll(selector).values()].sort(
-                    (a, b) => {
-                        let ba: DOMRect = a.getBoundingClientRect(), bb: DOMRect = b.getBoundingClientRect();
-                        return ba.left - bb.left || ba.top - bb.top;
-                    }
-                ));
+            let elements: Element[] = groupByInstance(
+                [...root.querySelectorAll(selector).values()], selector
+            )[0];
             let labelElement = document.createElement('div');
             switch (label.renderType) {
                 case "html":
@@ -177,28 +210,38 @@ export function drawLabels(labels: LabelInfo, root: HTMLElement) {
     }
 }
 
+// just a shorthand that is unlikely to be useful elsewhere
+type ElementWithInstance = {
+    element: Element, instanceIndices: IndexedInstance[]
+};
 
-
-function groupByAdjacent(elements: Element[]): Element[][] {
-    let ret: Element[][] = [];
-    if (elements.length > 0) {
-        ret.push([elements[0]]);
-        for (var i = 1; i < elements.length; i++) {
-            let elemBoundingBox = elements[i].getBoundingClientRect();
-            var foundGroup = false;
-            for (var j = 0; i < ret.length; j++) {
-                if (ret[j].some(br => // could be optimized by saving the outer rects
-                    isAdjacent(br.getBoundingClientRect(), elemBoundingBox, maxGap))) {
-                    ret[j].push(elements[i]);
-                    foundGroup = true;
-                }
-            }
-            if (!foundGroup) ret.push([elements[i]]);
-        }
-    }
-    return ret;
+function groupByStyleInstance(
+    elements: ElementWithInstance[],
+    styleClass: string): ElementWithInstance[][] {
+    var groups: {
+        [idx: number]: ElementWithInstance[]
+    } = [];
+    elements.forEach(({ element, instanceIndices }) =>
+        instanceIndices.filter(([style, _]) => styleClass === style)
+            .map(([_, idx]) => idx)
+            .forEach(idx => (groups[idx] ??= []).push({ element, instanceIndices }))
+    );
+    return Object.values(groups);
 }
 
+function groupByInstance(elements: Element[], selector: string): Element[][] {
+    let classes =
+        selector.slice(selector.indexOf('\x20') + 1).split('.')
+            .filter(s => !(s === '' || s === 'visible'));
+    let groups = [elements.map(element => ({
+        element,
+        instanceIndices: JSON.parse(element.getAttribute(INSTANCE_DATA_ATTR)!)
+    }))];
+    for (var cls of classes) {
+        groups = groups.flatMap(e => groupByStyleInstance(e, cls))
+    }
+    return groups.map(g => g.map(({ element }) => element));
+}
 
 export type BackgroundInfo = { selector: string, backgroundColor: any }[];
 export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement) {
@@ -219,13 +262,8 @@ export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement
 
         root.style.position = 'relative';
         backgroundInfo.forEach(({ selector, backgroundColor }) =>
-            groupByAdjacent(
-                [...root.querySelectorAll(selector).values()].sort(
-                    (a, b) => {
-                        let ba: DOMRect = a.getBoundingClientRect(), bb: DOMRect = b.getBoundingClientRect();
-                        return ba.left - bb.left || ba.top - bb.top;
-                    }
-                )
+            groupByInstance(
+                [...root.querySelectorAll(selector).values()], selector
             ).map(group => {
                 var bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                 bgRect.setAttribute('stroke', 'none');
