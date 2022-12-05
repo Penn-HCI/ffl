@@ -125,16 +125,19 @@ exports.INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
 function transformKaTeXHTML(root, katexHtmlMain, classesState) {
     var _a, _b, _c, _d, _e, _f;
+    let invocId;
     if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
         classesState !== null && classesState !== void 0 ? classesState : (classesState = []);
         if (katexHtmlMain.classes && !Array.isArray(katexHtmlMain.classes))
             katexHtmlMain.classes = [katexHtmlMain.classes];
-        for (var i = 0; i <= ((_a = katexHtmlMain.children) !== null && _a !== void 0 ? _a : []).length; i++) {
+        for (var i = 0; i < ((_a = katexHtmlMain.children) !== null && _a !== void 0 ? _a : []).length; i++) {
             var childNode = ((_b = katexHtmlMain.children) !== null && _b !== void 0 ? _b : [])[i], ffl;
             if (ffl = (0, styleMarkers_1.getFFLMarker)(childNode)) {
                 switch (ffl.command) {
                     case "startInvoc":
-                        katexHtmlMain.classes.push(`ffl-${ffl.arg}`);
+                        invocId = ffl.arg;
+                        katexHtmlMain.classes.push(`ffl-${invocId}`);
+                        root.classes.push(`ffl-${invocId}`);
                         break;
                     case "style":
                         let style = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
@@ -150,7 +153,7 @@ ${block.selectorString} {
                                 k = '--ffl-background-color';
                             }
                             return `${k}: ${v};`;
-                        })}
+                        }).join('\n')}
 }`).join('\n')}</style>`));
                         ((_d = root.ffl) !== null && _d !== void 0 ? _d : (root.ffl = {})).labels = [];
                         root.ffl.backgroundColors = [];
@@ -184,7 +187,9 @@ ${block.selectorString} {
                 katexHtmlMain.children.splice(i--, 1);
             }
             else {
-                transformKaTeXHTML(root, childNode, classesState);
+                let id = transformKaTeXHTML(root, childNode, classesState);
+                if (!invocId)
+                    invocId = id;
             }
         }
         if (classesState.length > 0) {
@@ -209,9 +214,10 @@ ${block.selectorString} {
             }
         }
     }
+    return invocId;
 }
 function renderToHTMLTree(ffl, expression, options) {
-    var _a, _b;
+    var _a;
     let __renderToHTMLTree = (_a = window.renderToHTMLTree) !== null && _a !== void 0 ? _a : katex_1.default.__renderToHTMLTree;
     try {
         __renderToHTMLTree(expression, Object.assign(Object.assign({}, options), { throwOnError: true }));
@@ -226,7 +232,7 @@ function renderToHTMLTree(ffl, expression, options) {
     }
     var parsedFFL = grammar.parse(ffl, { startRule: "blocks" });
     var htmlTree = __renderToHTMLTree(`\\ffl{${expression}}`, overrideOptions(options, parsedFFL));
-    var katexHtmlMain = (_b = htmlTree.children.find((span) => span.classes.includes("katex-html"))) !== null && _b !== void 0 ? _b : htmlTree.children.flatMap((s) => s.children).find((span) => span.classes.includes("katex-html"));
+    var katexHtmlMain = htmlTree.children.find((span) => span.classes.includes("katex-html"));
     transformKaTeXHTML(htmlTree, katexHtmlMain);
     htmlTree.style.display = 'inline-block';
     return htmlTree;

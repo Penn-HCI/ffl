@@ -145,7 +145,7 @@ function markConstants(latex, count) {
                 do {
                     i++;
                 } while (((_b = tree[i]) !== null && _b !== void 0 ? _b : '').match(/^\d+$/g));
-                tree.splice(i, 0, fflMarker("endStyle", "constant", (count++).toString()));
+                tree.splice(i, 0, fflMarker("endStyle", "constant", count.toString()));
             }
         }
     }

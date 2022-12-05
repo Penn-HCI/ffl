@@ -120,16 +120,21 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
 export const INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
 function transformKaTeXHTML(root: any, katexHtmlMain: any,
-  classesState?: [style: string, instanceIdx: number][]) {
+  classesState?: [style: string, instanceIdx: number][]): string | undefined {
+  let invocId: string | undefined;
   if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
     classesState ??= [];
     if (katexHtmlMain.classes && !Array.isArray(katexHtmlMain.classes))
       katexHtmlMain.classes = [katexHtmlMain.classes];
-    for (var i = 0; i <= (katexHtmlMain.children ?? []).length; i++) {
+    for (var i = 0; i < (katexHtmlMain.children ?? []).length; i++) {
       var childNode = (katexHtmlMain.children ?? [])[i], ffl;
       if (ffl = getFFLMarker(childNode)) {
         switch (ffl.command) {
-          case "startInvoc": katexHtmlMain.classes.push(`ffl-${ffl.arg}`); break;
+          case "startInvoc":
+            invocId = ffl.arg;
+            katexHtmlMain.classes.push(`ffl-${invocId}`);
+            root.classes.push(`ffl-${invocId}`);
+            break;
           case "style":
             let style: any[] = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
             (root.children ??= []).push(
@@ -143,7 +148,8 @@ ${block.selectorString} {
                   k = '--ffl-background-color';
                 }
                 return `${k}: ${v};`;
-              })}
+              }).join('\n')
+    }
 }`).join('\n')}</style>`));
             (root.ffl ??= {}).labels = [];
             root.ffl.backgroundColors = [];
@@ -174,7 +180,8 @@ ${block.selectorString} {
         }
         katexHtmlMain.children.splice(i--, 1);
       } else {
-        transformKaTeXHTML(root, childNode, classesState);
+        let id = transformKaTeXHTML(root, childNode, classesState);
+        if (!invocId) invocId = id;
       }
     }
     if (classesState.length > 0) {
@@ -199,6 +206,7 @@ ${block.selectorString} {
       }
     }
   }
+  return invocId;
 }
 
 function renderToHTMLTree(ffl: string, expression: string, options?: KatexOptions): any {

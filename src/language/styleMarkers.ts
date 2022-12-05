@@ -148,7 +148,7 @@ export function markConstants(latex: TokenTree, count?: number): TokenTree {
                     i++;
                 } while ((tree[i] as string ?? '').match(/^\d+$/g))
                 tree.splice(i, 0,
-                    fflMarker("endStyle", "constant", (count++).toString()))
+                    fflMarker("endStyle", "constant", count.toString()))
             }
         }
     }

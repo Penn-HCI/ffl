@@ -15,11 +15,14 @@
 1. (Scale) How easy do you find using our tool comparing to using regular LaTeX math (including `amsmath` and common packages)?
 2. What issues did you have with it? Please rank from most to least frustrating?
    1. disambiguation: override? live is useful, combining, ltr, different from writing (thinking semantically)
+   2. More demo/tutorial
+
 3. Were there things you expected to work but didn't? If so, what were they?
-4. What are some things you liked and would like us to keep?
+   3. Question on overriding
+5. What are some things you liked and would like us to keep?
    1. change: combinator instructions: e.g. & use case
    2. keep: optional semicol, dollar sign wasn't so bad after a while
-5. Feedback on cheatsheet?
+6. Feedback on cheatsheet?
    1. print out high-res, the exact color does not matter
 
-Watch & ask? Could imagine themselves using for their own work? Actual need? Script, setups? Think aloud? Encourage questions?
+Watch & ask? Could imagine themselves using for their own work? Actual need? Script, setups? Think aloud? Encourage questions? More feature-ful practice

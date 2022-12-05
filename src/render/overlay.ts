@@ -153,34 +153,15 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
     });
 }
 
-const maxGap = 32;
-
-function firstAdjacent(elements: Element[]): Element[] {
-    let ret: Element[] = [];
-    if (elements.length > 0) {
-        let outerBoundingBox = new BoundingBox(elements[0].getBoundingClientRect());
-        ret.push(elements[0]);
-        for (var i = 1; i < elements.length; i++) {
-            let elemBoundingBox = elements[i].getBoundingClientRect();
-            if (isAdjacent(outerBoundingBox, elemBoundingBox, maxGap))
-                ret.push(elements[i]);
-        }
-    }
-    return ret;
-}
-
-function isAdjacent(a: DOMRect | BoundingBox, b: DOMRect | BoundingBox, maxGap: number) {
-    return !(a.left - b.right > maxGap || b.left - a.right > maxGap
-        || a.top - b.bottom > maxGap || b.top - a.bottom > maxGap);
-}
-
 export type LabelInfo = { selector: string, label: any }[];
 export function drawLabels(labels: LabelInfo, root: HTMLElement) {
     // need to make sure element is rendered to find the bounding box
     let visibility = setVisible(root);
     try {
         let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
-        let labelInfo = labels.map(({ selector, label }) => {
+        let labelInfo = labels.flatMap(({ selector, label }) =>
+            selector.split(',').map(ss => ({ selector: ss.trim(), label }))
+        ).map(({ selector, label }) => {
             let elements: Element[] = groupByInstance(
                 [...root.querySelectorAll(selector).values()], selector
             )[0];
@@ -193,6 +174,8 @@ export function drawLabels(labels: LabelInfo, root: HTMLElement) {
                     labelElement.appendChild(document.createTextNode(label.value));
                     break;
             }
+            labelElement.classList.add("ffl-label");
+            labelElement.classList.add("visible");
             return {
                 symbolBoundingBox: BoundingBox.of(
                     ...elements.map(node => new BoundingBox(node.getBoundingClientRect()))
@@ -261,7 +244,9 @@ export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement
             ${rootBoundingBox.width} ${rootBoundingBox.height}`);
 
         root.style.position = 'relative';
-        backgroundInfo.forEach(({ selector, backgroundColor }) =>
+        backgroundInfo.flatMap(({ selector, backgroundColor }) =>
+            selector.split(',').map(ss => ({ selector: ss.trim(), backgroundColor }))
+        ).forEach(({ selector, backgroundColor }) =>
             groupByInstance(
                 [...root.querySelectorAll(selector).values()], selector
             ).map(group => {

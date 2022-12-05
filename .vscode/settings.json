@@ -3,14 +3,20 @@
         "arrs",
         "mathclap",
         "mbin",
+        "mclose",
+        "mopen",
         "mord",
+        "mpunct",
+        "mrel",
         "mspace",
         "noexpand",
         "pegjs",
         "textbackslash",
         "texttt",
+        "toks",
         "underbrace",
         "unexpandable",
+        "uuidv",
         "vlist"
     ]
 }

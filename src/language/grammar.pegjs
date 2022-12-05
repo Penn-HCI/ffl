@@ -69,7 +69,7 @@ singleQuoteString = '\'' s:$('\\\'' / (!'\'' .))* '\'' { return s.replaceAll('\\
 cssAttribute = k:styleKey __ ':' __ v:styleValue __ { return { [k.trim()]: v.trim() }; }
 
 styleKey = $('--'? ident)
-styleValue = $qString / $("\\;" / (!(';' / '}') .))+
+styleValue = qString / $("\\;" / [^;}])+
 
 ident = $(alpha alnum*)
 

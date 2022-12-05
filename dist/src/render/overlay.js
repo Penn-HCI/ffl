@@ -179,6 +179,7 @@ function drawLabels(labels, root) {
                     break;
             }
             labelElement.classList.add("ffl-label");
+            labelElement.classList.add("visible");
             return {
                 symbolBoundingBox: (_a = boundingBox_1.BoundingBox.of(...elements.map(node => new boundingBox_1.BoundingBox(node.getBoundingClientRect())))) === null || _a === void 0 ? void 0 : _a.relativeTo(rootBoundingBox),
                 labelElement: labelElement
