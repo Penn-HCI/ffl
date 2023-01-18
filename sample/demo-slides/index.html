@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/reveal.css">
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/theme/white.css">
+    <link rel="stylesheet" href="node_modules/reveal.js/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.css"
+        integrity="sha384-Juol1FqnotbkyZUT5Z7gUPjQ9gzlwCENvUZTpQBAPxtusdwFLRy382PSDx5UUJ4/" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.css"
+        integrity="sha384-Juol1FqnotbkyZUT5Z7gUPjQ9gzlwCENvUZTpQBAPxtusdwFLRy382PSDx5UUJ4/" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.3/dist/katex.min.js"
+        integrity="sha384-97gW6UIJxnlKemYavrqDHSX3SiygeOwIZhwyOKRfSaf0JWKRVj9hLASHgFTzT+0O"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section>
+                <div class="r-stack">
+                    <span class="fragment fade-out" style="display: inline-block; transform: scale(0.6);">
+                        <b>Predictor decomposition.</b> Applications specify the predictor \(P^t\)
+                        as server and client components:
+                        $$ P^t(q|Δ, et) = P^t_s(q|Δ, st)P^t_c(st|Δ, et) $$
+                        The client component \(P^t_c\) collects user interaction events
+                        and requests et and translates this information into a byte
+                        array that represents the predictor state st. st may be the
+                        most recent request(s), model parameters, the most recent
+                        user events, or simply the predicted probabilities themselves.
+                        The server uses st as input to \(P^t_s\) in order to return future
+                        request probabilities for the Khameleon scheduler’s joint
+                        optimization between prefetching and response tuning.<br /><br />
+                        <small>Haneen Mohammed, Ziyun Wei, Eugene Wu, and Ravi Netravali. 2020. Continuous prefetch
+                            for
+                            interactive data applications. Proc. VLDB Endow. 13, 12 (August 2020), 2297–2311.
+                            https://doi.org/10.14778/3407790.3407826
+                        </small>
+                    </span>
+                    <span class="fragment" style="display: inline-block; transform: scale(0.6);">
+                        <b>Predictor decomposition.</b> Applications specify the predictor \(P^t\)
+                        as <span style="color:red">server</span> and <span style="color:blue">client</span>
+                        components:
+                        $$ P^t(q|Δ, et) = \textcolor{red}{P^t_s(q|Δ, st)}\textcolor{blue}{P^t_c(st|Δ, et)} $$
+                        The client component <span style="color:blue">\(P^t_c\)</span> collects user interaction
+                        events
+                        and requests et and translates this information into a byte
+                        array that represents the predictor state st. st may be the
+                        most recent request(s), model parameters, the most recent
+                        user events, or simply the predicted probabilities themselves.
+                        The server uses st as input to <span style="color:red">\(P^t_s\)</span> in order to return
+                        future
+                        request probabilities for the Khameleon scheduler’s joint
+                        optimization between prefetching and response tuning.<br /><br />
+                        <small>Haneen Mohammed, Ziyun Wei, Eugene Wu, and Ravi Netravali. 2020. Continuous prefetch
+                            for
+                            interactive data applications. Proc. VLDB Endow. 13, 12 (August 2020), 2297–2311.
+                            https://doi.org/10.14778/3407790.3407826
+                        </small>
+                    </span>
+                </div>
+            </section>
+            <section>
+                <aside class="notes">
+                    <h3>Base</h3>
+                    <ol>
+                        <li>recolor w/ FFL
+                            <ul>
+                                <li>literal</li>
+                                <li>multi-target (cross-cutting & <code>,</code>)</li>
+                                <li>quick swap of colors</li>
+                            </ul>
+                        </li>
+                        <li>labels</li>
+                    </ol>
+                    <h3>Extended</h3>
+                    <ol start="3">
+                        <li>label styles -> just any CSS</li>
+                        <li>wildcards to simplify selector</li>
+                        <li>non-math CSS classes</li>
+                        <li>other CSS styles</li>
+                        <li>Q&A?</li>
+                    </ol>
+                </aside>
+                <iframe width="100%" height="500" style="scale: 1.48; transform-origin: 50% 0;" frameborder="0"
+                    src="http://localhost:3000/"></iframe>
+            </section>
+        </div>
+    </div>
+    <script src="node_modules/reveal.js/dist/reveal.js"></script>
+    <script src="node_modules/reveal.js/plugin/math/math.js"></script>
+    <script src="node_modules/reveal.js/plugin/highlight/highlight.js"></script>
+    <script src="node_modules/reveal.js/plugin/notes/notes.js"></script>
+    <link rel="stylesheet" href="highlight/styles/default.min.css">
+    <script src="highlight/languages/latex.min.js"></script>
+    <script>
+        Reveal.initialize({
+            // The "normal" size of the presentation, aspect ratio will
+            // be preserved when the presentation is scaled to fit different
+            // resolutions. Can be specified using percentage units.
+            width: "60%",
+            height: "80%",
+
+            // Factor of the display size that should remain empty around
+            // the content
+            margin: 0.04,
+
+            // Bounds for smallest/largest possible scale to apply to content
+            minScale: 0.4,
+            maxScale: 2.0,
+            plugins: [
+                RevealMath.KaTeX,
+                RevealHighlight,
+                RevealNotes
+            ],
+            katex: {
+                version: 'latest',
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            },
+        });
+        hljs.highlightAll();
+    </script>
+</body>
+
+</html>

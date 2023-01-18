@@ -31,7 +31,7 @@ function __tryTokenize(selector: string, options: KatexOptions): string[] {
   return toks.reverse();
 }
 
-function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptions {
+function overrideOptions(options: KatexOptions | any, fflParse: grammar.FFLStyleSheet): KatexOptions {
   options ??= { macros: {} }
   let fflLitSelectorsTokenized: any[] = [];
   for (const b of fflParse) {
@@ -51,7 +51,6 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
     macros: {
       ...options.macros, "\\ffl": (context: any) => {
         // TODO: post-expansion matching
-        // FIXME: this is too monolithic, refactoring needed
         var latex: any[] = context.consumeArg().tokens;
         var fflLitSelectors = [...fflLitSelectorsTokenized];
         // working with strings from now on, until we find a good way to implement katex's Token interface
@@ -81,8 +80,11 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
         let style = fflParse.map(
           (styleBlock: any) => ({
             selectorString: styleBlock.selectors.map(
-              (selectorGroups: { type: 'literal' | 'class', str: string }[]) =>
-                selectorGroups.map(
+              (selectorGroups: ('*' | { type: 'literal' | 'class', str: string })[]) => {
+                let isGlobal = selectorGroups[0] === '*';
+                if (isGlobal) selectorGroups.shift();
+                let selectorGroups_: { type: 'literal' | 'class', str: string }[] = selectorGroups as any;
+                let grpStr = selectorGroups_.map(
                   (singleSelector: { type: string, str: string }) => {
                     if (singleSelector.type === 'literal') {
                       return `.${fflLitSelectors[idx++].key}`;
@@ -97,8 +99,10 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
                     }
                   }
                 ).join('')
-            ).map((grpStr: string) => `.ffl-${sectionKey} ${grpStr}.visible`).join(', '),
-            properties: styleBlock.attributes
+                return isGlobal ? grpStr : `.ffl-${sectionKey} ${grpStr}.visible`
+              }
+            ).join(', '),
+            properties: styleBlock.properties
           })
         );
         return `{${fflMarker("startInvoc", sectionKey)}${fflMarker("style", JSON.stringify(style))}
@@ -116,6 +120,39 @@ function overrideOptions(options: KatexOptions | any, fflParse: any): KatexOptio
     }
   };
 }
+
+// from intermediate representation where selectors are replaces with CSS classes
+// to a fake style node in KaTeX's representation of the document tree
+const toCSS = (translatedStyles: any) =>
+  toKaTeXVirtualNode(`<style>${translatedStyles.map((block: any) => `
+${block.selectorString} {
+${Object.entries(block.properties).map(([k, v]: [any, any]) => {
+    switch (k) {
+      case 'label':
+        k = '--ffl-label';
+        v = `${v.renderType ?? ''}("${v.value ?? ''}")`;
+        break;
+      case 'label-position':
+        k = '--ffl-label-position';
+        break;
+      case 'label-marker':
+        k = '--ffl-label-marker';
+        break;
+      case 'label-marker-offset-x':
+        k = '--ffl-label-marker-offset-x';
+        break;
+      case 'label-marker-offset-y':
+        k = '--ffl-label-marker-offset-y';
+        break;
+      case 'background-color':
+        k = '--ffl-background-color';
+        break;
+    }
+    return `${k}: ${v};`;
+  }).join('\n')
+    }
+}`).join('\n')}</style>`
+  );
 
 export const INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
@@ -137,28 +174,30 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any,
             break;
           case "style":
             let style: any[] = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
-            (root.children ??= []).push(
-              toKaTeXVirtualNode(`<style>${style.map(block => `
-${block.selectorString} {
-    ${Object.entries(block.properties).map(([k, v]: [any, any]) => {
-                if (k === 'label') {
-                  k = '--ffl-label';
-                  v = `${v.renderType ?? ''}("${v.value ?? ''}")`;
-                } else if (k === 'background-color') {
-                  k = '--ffl-background-color';
-                }
-                return `${k}: ${v};`;
-              }).join('\n')
-    }
-}`).join('\n')}</style>`));
+            (root.children ??= []).push(toCSS(style));
             (root.ffl ??= {}).labels = [];
             root.ffl.backgroundColors = [];
             style.forEach(block => {
               let label = block.properties['label'];
+              let labelPosition = block.properties['label-position'];
+              let labelMarker = block.properties['label-marker'];
+              let markerOffsetX = block.properties['label-marker-offset-x'];
+              let markerOffsetY = block.properties['label-marker-offset-y'];
+              const parsePx = (s: string) => {
+                let s_ = (s ?? "").trim();
+                let f = parseFloat(
+                  s_.toLowerCase().endsWith('px')
+                    ? s_.slice(0, s_.length - 2).trimEnd() : s_);
+                return (f && !isNaN(f)) ? f : 0;
+              }
               if (label) {
                 root.ffl.labels.push({
                   selector: block.selectorString,
-                  label: label
+                  label, labelPosition, labelMarker,
+                  markerOffset: {
+                    x: parsePx(markerOffsetX) ?? 0,
+                    y: parsePx(markerOffsetY) ?? 0
+                  }
                 });
               }
               let backgroundColor = block.properties['background-color'];
@@ -209,6 +248,11 @@ ${block.selectorString} {
   return invocId;
 }
 
+function findKatexHTMLRoot(htmlTree: any): any | undefined {
+  return htmlTree.children.find((span: any) => span.classes.includes("katex-html"))
+    ?? htmlTree.children.map(findKatexHTMLRoot).find((e: any) => e);
+}
+
 function renderToHTMLTree(ffl: string, expression: string, options?: KatexOptions): any {
   let __renderToHTMLTree = (window as any).renderToHTMLTree ?? katex.__renderToHTMLTree;
   try {
@@ -220,18 +264,19 @@ function renderToHTMLTree(ffl: string, expression: string, options?: KatexOption
       return __renderToHTMLTree(expression, options ?? {});
     }
   }
-  var parsedFFL = grammar.parse(ffl, { startRule: "blocks" });
+  var parsedFFL = grammar.parse(ffl, { startRule: "blocks" }) as grammar.FFLStyleSheet;
   var htmlTree = __renderToHTMLTree(`\\ffl{${expression}}`, overrideOptions(options, parsedFFL));
-  var katexHtmlMain = htmlTree.children.find((span: any) => span.classes.includes("katex-html"));
+  var katexHtmlMain = findKatexHTMLRoot(htmlTree);
   transformKaTeXHTML(htmlTree, katexHtmlMain);
   htmlTree.style.display = 'inline-block';
   return htmlTree;
 }
 
-function drawOverlays(root: HTMLElement, labels?: LabelInfo, backgroundInfo?: BackgroundInfo) {
+function drawOverlays(root: HTMLElement,
+  labels?: LabelInfo, backgroundInfo?: BackgroundInfo, options?: KatexOptions) {
   if (!isServer()) {
     if (backgroundInfo) drawBackground(backgroundInfo, root);
-    if (labels) drawLabels(labels, root);
+    if (labels && options?.displayMode) drawLabels(labels, root);
   }
 }
 
@@ -243,7 +288,7 @@ class ffl {
   static render(latex: string, ffl: string, baseNode: HTMLElement, options?: KatexOptions): void {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
     let htmlNode = htmlTree.toNode();
-    drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors);
+    drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
     baseNode.textContent = "";
     baseNode.appendChild(htmlNode);
   }
@@ -254,7 +299,7 @@ class ffl {
       let htmlNode;
       try {
         htmlNode = toHTMLElement(htmlTree.toMarkup());
-        drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors);
+        drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
         var htmlStr = htmlNode.outerHTML;
       } finally {
         if (htmlNode) htmlNode.remove();

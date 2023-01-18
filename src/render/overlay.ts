@@ -6,7 +6,7 @@ import { resetVisibility, setVisible } from '../utils/visibility';
 import { toHTMLElement } from '../utils/dom';
 import { INSTANCE_DATA_ATTR } from '../ffl';
 import { IndexedInstance } from '../language/styleMarkers';
-declare function renderMathInElement(elem: Element, options?: any): string;
+
 const delimiterInElement = [{
     left: "$$",
     right: "$$",
@@ -43,15 +43,23 @@ const delimiterInElement = [{
     display: true
 }];
 
-function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelElement: HTMLElement }[],
-    root: HTMLElement, rootBoundingBox: BoundingBox, direction?: "up" | "down") {
+function drawLabelGroup(labelInfo: {
+    symbolBoundingBox?: BoundingBox,
+    labelElement: HTMLElement,
+    labelPosition?: "above" | "below" | "auto",
+    labelMarker?: "line" | "extent",
+    markerOffset?: {
+        x?: number,
+        y?: number
+    }
+}[], root: HTMLElement, rootBoundingBox: BoundingBox, direction?: "up" | "down") {
 
     var labelsOverlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let labels = labelInfo.map((nodeInfo) => {
         var foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
         foreignObject.setAttribute('xmlns', "http://www.w3.org/1999/xhtml");
-        if (renderMathInElement)
-            renderMathInElement(nodeInfo.labelElement, { delimiters: delimiterInElement });
+        if ((window as any).renderMathInElement)
+            (window as any).renderMathInElement(nodeInfo.labelElement, { delimiters: delimiterInElement });
         foreignObject.appendChild(nodeInfo.labelElement);
         return foreignObject;
     });
@@ -70,9 +78,8 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
             ? boundingRects[i].width
             : MAX_WIDTH;
         e.labelElement.setAttribute("style", `
-            inline-size: ${width}px;
+            inline-size: fit-content;
             max-width: ${MAX_WIDTH}px;
-            overflow-wrap: break-word;
         `)
     });
 
@@ -113,12 +120,12 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
     if (direction === "up") {
         let style = root.getAttribute('style');
         if (style && !style.endsWith(';')) style += ';';
-        root.setAttribute('style', style + ` margin-top: ${-viewBox.top - nodeHeight * 1.5}px;`);
+        root.setAttribute('style', style + ` margin-top: ${-viewBox.top - nodeHeight}px;`);
     }
     if (direction === "down") {
         let style = root.getAttribute('style');
         if (style && !style.endsWith(';')) style += ';';
-        root.setAttribute('style', style + ` margin-bottom: ${viewBox.bottom - rootBoundingBox.height + nodeHeight * 2}px;`);
+        root.setAttribute('style', style + ` margin-bottom: ${viewBox.bottom - rootBoundingBox.height + nodeHeight}px;`);
     }
 
     Object.assign(labelsOverlay.style, {
@@ -135,59 +142,99 @@ function drawLabelGroup(labelInfo: { symbolBoundingBox?: BoundingBox, labelEleme
         labels[idx].setAttribute('overflow', 'visible');
         labels[idx].setAttribute('x', `${node.x! - node.dx! / 2}`);
         labels[idx].setAttribute('width', `${node.dx!}`);
-        labels[idx].setAttribute('y', `${anchorLineY + node.y! - node.dy! / 4 -
-            (direction === 'up' ? boundingRects[idx].height - node.dy! : 0)}`);
+        labels[idx].setAttribute('dy', `${node.dy!}`);
+        labels[idx].setAttribute('y', `${anchorLineY + node.y! -
+            (direction === 'up' ? boundingRects[idx].height - node.dy! / 2 : node.dy! / 4)}`);
         labels[idx].setAttribute('height', `${boundingRects[idx].height}`);
         if (direction == 'down') labels[idx].setAttribute('dominant-baseline', `hanging`);
-        let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d',
-            `M ${node.data.symbolBoundingBox.center.horizontal} 
-               ${direction == "up"
-                ? node.data.symbolBoundingBox.top
-                : node.data.symbolBoundingBox.bottom - anchorLineY} L`
-            + renderer.generatePath(node).slice(1)
-        );
-        path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
-        Object.assign(path.style, { stroke: 'black', fill: 'none' });
-        labelsOverlay.appendChild(path);
+        const rebasedPath = function (x: number, y: number) {
+            let defaultPath = renderer.generatePath(node); // TODO: Generate own path to accommodate more range of offsets
+            return `M${x} ${y} ` + defaultPath.slice(defaultPath.indexOf('C'));
+        }
+        if ((labelInfo[idx].labelMarker ?? 'line') === 'line') {
+            let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d',
+                rebasedPath(node.data.symbolBoundingBox.center.horizontal + (labelInfo[idx].markerOffset?.x ?? 0)
+                    , (direction == "up"
+                        ? node.data.symbolBoundingBox.top
+                        : node.data.symbolBoundingBox.bottom - anchorLineY)
+                    + (labelInfo[idx].markerOffset?.y ?? 0)));
+            console.log(renderer.generatePath(node));
+            console.log(renderer.getWaypoints(node));
+            path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
+            Object.assign(path.style, { stroke: 'black', fill: 'none' });
+            labelsOverlay.appendChild(path);
+        } else if (labelInfo[idx].labelMarker === 'extent') {
+            let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            let base = direction === 'up' ? anchorLineY - 4 : anchorLineY - rootBoundingBox.height + 4;
+            path.setAttribute('d', rebasedPath(
+                node.data.symbolBoundingBox.center.horizontal + (labelInfo[idx].markerOffset?.x ?? 0),
+                base + (labelInfo[idx].markerOffset?.y ?? 0)));
+            path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
+            Object.assign(path.style, { stroke: 'black', fill: 'none' });
+
+            let brace: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            let edgeY = direction === 'up' ? node.data.symbolBoundingBox.top : node.data.symbolBoundingBox.bottom - rootBoundingBox.height;
+            brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${edgeY}
+                V${base} H${node.data.symbolBoundingBox.right} V${edgeY}`);
+            brace.setAttribute('transform',
+                `translate(${labelInfo[idx].markerOffset?.x ?? 0}, ${anchorLineY - node.dy! / 4 + (labelInfo[idx].markerOffset?.y ?? 0)})`);
+            Object.assign(brace.style, { stroke: 'black', fill: 'none' });
+
+            labelsOverlay.appendChild(path);
+            labelsOverlay.appendChild(brace);
+        }
     });
 }
 
-export type LabelInfo = { selector: string, label: any }[];
+export type LabelInfo = {
+    selector: string,
+    label: any,
+    labelPosition?: "above" | "below" | "auto",
+    labelMarker?: "line" | "extent",
+    markerOffset?: {
+        x?: number,
+        y?: number
+    }
+}[];
 export function drawLabels(labels: LabelInfo, root: HTMLElement) {
     // need to make sure element is rendered to find the bounding box
     let visibility = setVisible(root);
     try {
         let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
-        let labelInfo = labels.flatMap(({ selector, label }) =>
-            selector.split(',').map(ss => ({ selector: ss.trim(), label }))
-        ).map(({ selector, label }) => {
+        let labelInfo = labels.flatMap(({ selector, label, labelPosition, labelMarker, markerOffset }) =>
+            selector.split(',').map(ss => ({
+                selector: ss.trim(),
+                label, labelPosition, labelMarker, markerOffset
+            }))
+        ).map(({ selector, label, labelPosition, labelMarker, markerOffset }) => {
             let elements: Element[] = groupByInstance(
                 [...root.querySelectorAll(selector).values()], selector
             )[0];
             let labelElement = document.createElement('div');
             switch (label.renderType) {
-                case "html":
-                    labelElement.appendChild(toHTMLElement(label.value));
-                    break;
-                case "plain": default:
-                    labelElement.appendChild(document.createTextNode(label.value));
-                    break;
+                case "html": labelElement.appendChild(toHTMLElement(label.value)); break;
+                case "plain": default: labelElement.appendChild(document.createTextNode(label.value)); break;
             }
             labelElement.classList.add("ffl-label");
             labelElement.classList.add("visible");
             return {
-                symbolBoundingBox: BoundingBox.of(
+                symbolBoundingBox: elements !== undefined ? BoundingBox.of(
                     ...elements.map(node => new BoundingBox(node.getBoundingClientRect()))
-                )?.relativeTo(rootBoundingBox), // we use relative coords since our element could be attached anywhere once returned
-                labelElement: labelElement
+                )?.relativeTo(rootBoundingBox) : undefined, // we use relative coords since our element could be attached anywhere once returned
+                labelElement, labelPosition, labelMarker, markerOffset
             };
         }).filter(info => info.symbolBoundingBox);
         let center = rootBoundingBox.relativeTo(rootBoundingBox).center;
-        let [bottom, top] = partition(labelInfo, info => info.symbolBoundingBox?.center.vertical! >= center.vertical);
+        let [top, bottom] = partition(labelInfo, info =>
+            (info.labelPosition && info.labelPosition !== 'auto') ? info.labelPosition === 'above'
+                : info.symbolBoundingBox?.center.vertical! >= center.vertical);
         root.style.position = 'relative';
         if (bottom.length > 0) drawLabelGroup(bottom, root, rootBoundingBox, "down");
         if (top.length > 0) drawLabelGroup(top, root, rootBoundingBox, "up");
+    } catch (e) {
+        console.log(e);
+        throw e;
     } finally {
         resetVisibility(root, visibility);
     }

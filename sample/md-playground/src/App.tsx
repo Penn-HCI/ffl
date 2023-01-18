@@ -10,45 +10,16 @@ declare function require(path: string): any;
 var fflPlugin = require('markdown-it-ffl');
 
 function App() {
-  const [mdSrc, setMdSrc] = useState(`
-https://observablehq.com/@hzsteinberg/differential-equations
-...
-## Advanced Guess And Check
+  const [mdSrc, setMdSrc] = useState(`###### Haneen Mohammed, Ziyun Wei, Eugene Wu, and Ravi Netravali. 2020. Continuous prefetch for interactive data applications. Proc. VLDB Endow. 13, 12 (August 2020), 2297–2311. https://doi.org/10.14778/3407790.3407826
 
-Looks like our guess of $x(t) = e^t$ led to a contradiction. But $x(t)$ still feels like exponential growth. We can try a variation of the strategy: try an infinite family of functions at the same time by introducing some extra constants, which we can then tweak to figure out the exact solutions that work.
-
-Let's try guessing $x(t) = e^{ct}$, where $c$ is some unknown constant we can change at our will to satisfy the equation. Plug it in:
-
-$$\\frac{dx}{dt} = 2$$
-
-$$\\frac{d(e^{ct})}{dt} = 2e^{ct}$$
-
-Now we need to use our calculus knowledge to find that $\\frac{d(e^{ct})}{dt}$ on the left. We can use the chain rule:
-
-$$\\text{set}\\ x = e^u, u = ct$$
-
-$$\\frac{d(e^{ct})}{dt} = \\frac{dx}{du} \\frac{du}{dt} = \\frac{d(e^u)}{du} \\frac{d(ct)}{dt}$$
-
-This simplifies things since both of those rightmost derivatives are simple enough:
-
-$\\frac{d(e^u)}{du} = e^u = e^{ct} \\text{ , and } \\frac{d(ct)}{dt} = c$
-
-so we can plug them back in:
-
-$$\\frac{d(e^{ct})}{dt} = \\frac{d(e^u)}{du} \\frac{d(ct)}{dt} = c e^{ct}$$
-
-Finally, this makes our original differential equation turn into
-
-$c e^{ct} = 2e^{ct}$
- 
-and now we can see that setting $c=2$ will satisfy the differential equation. And that's it. We now have an explicit formula for $x(t)$: it's $x(t) = e^{2t}$.
-
+**Predictor decomposition.** Applications specify the predictor $P^t$ as <span class="server">server</span> and <span class="client">client</span> components:
+$$ P^t(q|\\Delta, e_t) = P^t_s(q|\\Delta, s_t) P^t_c(st|\\Delta, e_t) $$
+The client component <span class="client">$P^t_c$</span> collects user interaction events and requests $e_t$ and translates this information into a byte
+array that represents the predictor state $s_t$. $s_t$ may be the most recent request(s), model parameters, the most recent
+user events, or simply the predicted probabilities themselves. The server uses $s_t$ as input to <span class="server">$P^t_s$</span> in order to return future
+request probabilities for the Khameleon scheduler’s joint optimization between prefetching and response tuning.
 `);
-  const [fflSrc, setFflSrc] = useState(`
-$\\frac{*}{dt}$, $\\frac{*}{du}$ { color : green }
-$c$ { color : fuchsia }
-$u$ { color : blue }
-`);
+  const [fflSrc, setFflSrc] = useState(``);
   const [vecMode, setVecMode] = useState('arrow');
   var md = MarkdownIt({
     html: true,
