@@ -1,3 +1,21 @@
+export declare type FFLSelector = {
+    type: "literal" | "class";
+    str: string;
+    pseudoSelectors: {
+        class: string;
+        arg: string;
+    }[];
+};
+export declare type FFLIntersectionSelector = FFLSelector | FFLSelector[];
+export declare type FFLDisjointSelectorList = FFLIntersectionSelector[];
+export declare type FFLProperties = {
+    [key: string]: string | string[] | any;
+};
+export declare type FFLStyleBlock = {
+    selectors: FFLDisjointSelectorList;
+    properties: FFLProperties;
+};
+export declare type FFLStyleSheet = FFLStyleBlock[];
 export interface IFilePosition {
     offset: number;
     line: number;

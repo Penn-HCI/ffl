@@ -17,7 +17,12 @@ export declare function markMatches(src: TokenTree[], matchers: {
 }[], wildcardSingle: string, wildcardAny: string, escapes: {
     [esc: string]: string;
 }, instanceCounts?: InstanceCounts): any[];
-export declare function markConstants(latex: TokenTree, count?: number): TokenTree;
+export declare function markConstants(latex: TokenTree, counter?: {
+    count: number;
+}): TokenTree;
+export declare function markDoubleGroups(latex: TokenTree, counter?: {
+    count: number;
+}, markRoot?: boolean): TokenTree;
 export declare function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree;
 export declare function flatten(tokens: TokenTree): string | string[];
 export {};

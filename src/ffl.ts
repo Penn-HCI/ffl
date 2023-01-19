@@ -1,12 +1,12 @@
 import katex, { KatexOptions } from 'katex';
-import _ from 'lodash';
+import _, { at } from 'lodash';
 import * as grammar from "./language/grammar";
 import { isServer, isWhitespace } from './utils/common';
-import { parseAtomics } from './language/groupParser';
+import { parseAtomics, TokenTree } from './language/groupParser';
 import { v4 as uuidv4 } from 'uuid';
 import {
   markClasses, flatten, markMatches, markConstants,
-  fflMarker, fflPrefix, getFFLMarker
+  fflMarker, fflPrefix, getFFLMarker, markDoubleGroups
 } from './language/styleMarkers';
 import { BackgroundInfo, drawBackground, drawLabels, LabelInfo } from './render/overlay';
 import { toHTMLElement, toKaTeXVirtualNode } from './utils/dom';
@@ -62,11 +62,13 @@ function overrideOptions(options: KatexOptions | any, fflParse: grammar.FFLStyle
             matcher: parseAtomics(selectorTexts.filter(tok => !isWhitespace(tok)), isOpenGroup, isCloseGroup)
           };
         });
-        let latexWithMarkers = markMatches(latex, fflLitSelectors, '?', '*', {
+        let latexWithMarkers: TokenTree | any = markMatches(latex, fflLitSelectors, '?', '*', {
           '\\*': '*',
           '\\?': '?'
         });
-        latexWithMarkers = flatten(markConstants(markClasses(latexWithMarkers))) as any[];
+        // TODO: single-pass implementation rather than multi-pass
+        latexWithMarkers = markDoubleGroups(latexWithMarkers);
+        latexWithMarkers = flatten(markConstants(markClasses(latexWithMarkers)));
         // the inclusion of spaces as tokens is inconsistent,
         // we need additional spaces since we are concat'ing back to string
         for (var i = 1; i < latexWithMarkers.length; i++) {
@@ -77,34 +79,43 @@ function overrideOptions(options: KatexOptions | any, fflParse: grammar.FFLStyle
           }
         }
         var idx = 0;
+        type Selector = { type: 'literal' | 'class', str: string, pseudoSelectors: { class: string, arg: string }[] };
         let style = fflParse.map(
           (styleBlock: any) => ({
-            selectorString: styleBlock.selectors.map(
-              (selectorGroups: ('*' | { type: 'literal' | 'class', str: string })[]) => {
-                let isGlobal = selectorGroups[0] === '*';
-                if (isGlobal) selectorGroups.shift();
-                let selectorGroups_: { type: 'literal' | 'class', str: string }[] = selectorGroups as any;
-                let grpStr = selectorGroups_.map(
-                  (singleSelector: { type: string, str: string }) => {
-                    if (singleSelector.type === 'literal') {
-                      return `.${fflLitSelectors[idx++].key}`;
-                    }
-                    if (singleSelector.type === 'class') {
-                      let className = singleSelector.str;
-                      switch (className) {
-                        case 'operator': className = 'mbin'; break;
-                        default: break;
+            selectorGroups: styleBlock.selectors.map(
+              (selectorGroup: ('*' | Selector)[]) => {
+                let isGlobal = selectorGroup[0] === '*';
+                if (isGlobal) selectorGroup.shift();
+                let selectorGroup_: Selector[] = selectorGroup as any;
+                return {
+                  isGlobal, selectors: selectorGroup_.map(
+                    (singleSelector: Selector) => {
+                      let clazz: string | undefined = undefined;
+                      if (singleSelector.type === 'literal') {
+                        clazz = fflLitSelectors[idx++].key;
                       }
-                      return `.${className}`;
+                      if (singleSelector.type === 'class') {
+                        let className = singleSelector.str;
+                        switch (className) {
+                          case 'operator': className = 'mbin'; break;
+                          case 'group': className = 'ffl-group'; break;
+                          default: break;
+                        }
+                        clazz = className;
+                      }
+                      return {
+                        class: clazz,
+                        pseudoSelectors: singleSelector.pseudoSelectors
+                      };
                     }
-                  }
-                ).join('')
-                return isGlobal ? grpStr : `.ffl-${sectionKey} ${grpStr}.visible`
+                  )
+                }
               }
-            ).join(', '),
+            ),
             properties: styleBlock.properties
           })
         );
+
         return `{${fflMarker("startInvoc", sectionKey)}${fflMarker("style", JSON.stringify(style))}
           {${latexWithMarkers.join('')}}${fflMarker("endInvoc", sectionKey)}}`;
       },
@@ -121,12 +132,27 @@ function overrideOptions(options: KatexOptions | any, fflParse: grammar.FFLStyle
   };
 }
 
+export const toSelectorStrings = (selectorGroups: any[], scopeKey: string) =>
+  selectorGroups.map(({ isGlobal, selectors }) =>
+    `${isGlobal ? "*" : `.ffl-${scopeKey} `}${selectors.map(
+      (selector: { class: string, pseudoSelectors: any }) =>
+        `.${selector.class}${selector.pseudoSelectors.map((ps: any) => {
+          switch (ps.class) {
+            case "nth":
+              return `[${INSTANCE_DATA_ATTR}*=${CSS.escape(JSON.stringify([selector.class, ps.arg]))}]`;
+            default:
+              return '';
+          }
+        }).join('')}`).join('')
+    }`
+  );
+
 // from intermediate representation where selectors are replaces with CSS classes
 // to a fake style node in KaTeX's representation of the document tree
-const toCSS = (translatedStyles: any) =>
-  toKaTeXVirtualNode(`<style>${translatedStyles.map((block: any) => `
-${block.selectorString} {
-${Object.entries(block.properties).map(([k, v]: [any, any]) => {
+const toCSS = (translatedStyles: any, scopeKey: string) =>
+  toKaTeXVirtualNode(`<style> ${translatedStyles.map((block: any) => `
+${toSelectorStrings(block.selectorGroups, scopeKey).join(', ')} {
+  ${Object.entries(block.properties).map(([k, v]: [any, any]) => {
     switch (k) {
       case 'label':
         k = '--ffl-label';
@@ -151,9 +177,11 @@ ${Object.entries(block.properties).map(([k, v]: [any, any]) => {
     return `${k}: ${v};`;
   }).join('\n')
     }
-}`).join('\n')}</style>`
+}`).join('\n')
+    } </style>`
   );
 
+export type SelectorInfo = { isGlobal: boolean, selectors: { class: string, pseudoSelectors: { class: string, arg: string }[] }[] };
 export const INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
 function transformKaTeXHTML(root: any, katexHtmlMain: any,
@@ -169,12 +197,13 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any,
         switch (ffl.command) {
           case "startInvoc":
             invocId = ffl.arg;
+            (root.ffl ??= {}).invocId = invocId;
             katexHtmlMain.classes.push(`ffl-${invocId}`);
             root.classes.push(`ffl-${invocId}`);
             break;
           case "style":
             let style: any[] = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
-            (root.children ??= []).push(toCSS(style));
+            (root.children ??= []).push(toCSS(style, root?.ffl?.invocId ?? 'global'));
             (root.ffl ??= {}).labels = [];
             root.ffl.backgroundColors = [];
             style.forEach(block => {
@@ -192,7 +221,7 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any,
               }
               if (label) {
                 root.ffl.labels.push({
-                  selector: block.selectorString,
+                  selectorInfo: block.selectorGroups,
                   label, labelPosition, labelMarker,
                   markerOffset: {
                     x: parsePx(markerOffsetX) ?? 0,
@@ -203,7 +232,7 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any,
               let backgroundColor = block.properties['background-color'];
               if (backgroundColor) {
                 root.ffl.backgroundColors.push({
-                  selector: block.selectorString,
+                  selectorInfo: block.selectorGroups,
                   backgroundColor: backgroundColor
                 });
               }
@@ -272,11 +301,11 @@ function renderToHTMLTree(ffl: string, expression: string, options?: KatexOption
   return htmlTree;
 }
 
-function drawOverlays(root: HTMLElement,
+function drawOverlays(root: HTMLElement, scopeKey: string,
   labels?: LabelInfo, backgroundInfo?: BackgroundInfo, options?: KatexOptions) {
   if (!isServer()) {
-    if (backgroundInfo) drawBackground(backgroundInfo, root);
-    if (labels && options?.displayMode) drawLabels(labels, root);
+    if (backgroundInfo) drawBackground(backgroundInfo, root, scopeKey);
+    if (labels && options?.displayMode) drawLabels(labels, root, scopeKey);
   }
 }
 
@@ -288,7 +317,7 @@ class ffl {
   static render(latex: string, ffl: string, baseNode: HTMLElement, options?: KatexOptions): void {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
     let htmlNode = htmlTree.toNode();
-    drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
+    drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
     baseNode.textContent = "";
     baseNode.appendChild(htmlNode);
   }
@@ -299,7 +328,7 @@ class ffl {
       let htmlNode;
       try {
         htmlNode = toHTMLElement(htmlTree.toMarkup());
-        drawOverlays(htmlNode, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
+        drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
         var htmlStr = htmlNode.outerHTML;
       } finally {
         if (htmlNode) htmlNode.remove();

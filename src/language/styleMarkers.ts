@@ -6,7 +6,9 @@ import { isWhitespace } from "../utils/common";
 export const fflPrefix = "\\ffl@";
 export const fflMarkerCmd = "\\fflMarker";
 export type Command = "startInvoc" | "endInvoc" | "style" | "startStyle" | "endStyle";
-export function fflMarker(cmd: Command, ...arg: string[]): string { return `${fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`; }
+export function fflMarker(cmd: Command, ...arg: string[]): string {
+    return `${fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`;
+}
 
 export function getFFLMarker(node: any): { command: Command, arg: any } | undefined {
     if (['mord', 'text'].every((name) => (node?.classes ?? []).includes(name))
@@ -73,16 +75,19 @@ export function markMatches(src: TokenTree[],
             });
             matchTableState.filter(matcher => matcher.matcher.length == 0 && matcher.startIdx !== undefined)
                 .forEach(matcher => {
-                    startStyles[matcher.startIdx!] ??= [];
-                    startStyles[matcher.startIdx!].push({
-                        end: idx + 1,
-                        style: matcher.key
-                    });
-                    endStyles[idx + 1] ??= [];
-                    endStyles[idx + 1].push({
-                        start: matcher.startIdx!,
-                        style: matcher.key
-                    });
+                    if (!(['^', '_'].includes(source[idx + 1] as string)
+                        && ['^', '_'].some(t => source.slice(matcher.startIdx!, idx + 1).includes(t)))) {
+                        startStyles[matcher.startIdx!] ??= [];
+                        startStyles[matcher.startIdx!].push({
+                            end: idx + 1,
+                            style: matcher.key
+                        });
+                        endStyles[idx + 1] ??= [];
+                        endStyles[idx + 1].push({
+                            start: matcher.startIdx!,
+                            style: matcher.key
+                        });
+                    }
                 });
         }
     }
@@ -134,25 +139,58 @@ export function markMatches(src: TokenTree[],
 }
 
 // note that this mutates the array
-export function markConstants(latex: TokenTree, count?: number): TokenTree {
-    var tree = !Array.isArray(latex) ? [latex] : latex;
-    count ??= 0;
-    for (var i = 0; i < tree.length; i++) {
-        if (Array.isArray(tree[i])) {
-            tree[i] = markConstants(tree[i], count)
-        } else {
-            if ((tree[i] as string ?? '').match(/^\d+$/g)) {
-                tree.splice(i, 0,
-                    fflMarker("startStyle", "constant", (count++).toString()))
-                do {
-                    i++;
-                } while ((tree[i] as string ?? '').match(/^\d+$/g))
-                tree.splice(i, 0,
-                    fflMarker("endStyle", "constant", count.toString()))
+export function markConstants(latex: TokenTree, counter?: { count: number }): TokenTree {
+    var tree = _.clone(latex);
+    counter ??= { count: 0 };
+    if (Array.isArray(tree)) {
+        for (var i = 0; i < tree.length; i++) {
+            if (Array.isArray(tree[i])) {
+                tree[i] = markConstants(tree[i], counter)
+            } else {
+                if (!Number.isNaN(parseFloat(tree[i] as string))) {
+                    let count = counter.count++;
+                    tree.splice(i, 0,
+                        fflMarker("startStyle", "constant", count.toString()))
+                    do {
+                        i++;
+                    } while (!Number.isNaN(parseFloat(tree[i] as string)))
+                    tree.splice(i, 0,
+                        fflMarker("endStyle", "constant", count.toString()))
+                }
             }
+        }
+    } else {
+        if (!Number.isNaN(parseFloat(tree))) {
+            let count = counter.count++;
+            tree = [
+                fflMarker("startStyle", "constant", count.toString()),
+                tree,
+                fflMarker("endStyle", "constant", count.toString())
+            ]
         }
     }
     return tree;
+}
+
+export function markDoubleGroups(latex: TokenTree, counter?: { count: number }, markRoot?: boolean): TokenTree {
+    var tree = latex;
+    let ret: TokenTree = tree;
+    if ((markRoot ??= true)) tree = Array.isArray(latex) ? [latex] : [[latex]];
+    if (Array.isArray(tree)) {
+        counter ??= { count: 0 };
+        ret = [];
+        let isDoubleGroup = tree.length == 1 && Array.isArray(tree[0]);
+        let count = counter.count;
+        if (isDoubleGroup) {
+            count = counter.count++;
+            ret.push(fflMarker("startStyle", "ffl-group", count.toString()))
+        }
+        tree.forEach(t => (ret as any[]).push(markDoubleGroups(t, counter, false)))
+        if (isDoubleGroup) {
+            ret.push(fflMarker("endStyle", "ffl-group", count.toString()))
+        }
+    }
+    return ret;
 }
 
 const classes: { [key: string]: string[] } = {
@@ -162,6 +200,7 @@ const classes: { [key: string]: string[] } = {
     '\\frac': ['numerator', 'denominator'],
 }
 
+// FIXME: count ordering
 export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree {
     let _tokens = _.cloneDeep(tokens);
     instanceCounts ??= {};
@@ -170,7 +209,7 @@ export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts):
         var tok: TokenTree | undefined;
         while (tok = _tokens.pop()) {
             if (Array.isArray(tok)) {
-                ret.push(markClasses(tok));
+                ret.push(markClasses(tok, instanceCounts));
             } else {
                 let cmdClasses = classes[tok];
                 let expandedArgs: TokenTree[] = [];
@@ -198,6 +237,6 @@ export function flatten(tokens: TokenTree): string | string[] {
     if (Array.isArray(tokens)) {
         return ['{', ...tokens.map(flatten), '}'].flat();
     } else {
-        return tokens;
+        return [tokens];
     }
 }

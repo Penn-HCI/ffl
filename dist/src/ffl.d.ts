@@ -1,4 +1,15 @@
 import { KatexOptions } from 'katex';
+export declare const toSelectorStrings: (selectorGroups: any[], scopeKey: string) => string[];
+export declare type SelectorInfo = {
+    isGlobal: boolean;
+    selectors: {
+        class: string;
+        pseudoSelectors: {
+            class: string;
+            arg: string;
+        }[];
+    }[];
+};
 export declare const INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 /**
  * labels are only supported when running on browser client

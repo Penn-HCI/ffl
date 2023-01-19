@@ -4,7 +4,11 @@ import sanitizeHtml from 'sanitize-html';
 
 export type FFLSelector = {
     type : "literal" | "class",
-    str : string
+    str : string,
+    pseudoSelectors : {
+        class : string,
+        arg : string
+    }[]
 }
 
 export type FFLIntersectionSelector = FFLSelector | FFLSelector[]
@@ -33,14 +37,14 @@ block = s:selectorsList __ '{' __ attrs:properties __ '}' {
     }
 }
 
-selectorsList = ds:(descendantGroup __ ',' __)* td:descendantGroup {
-    return  [...ds.map((attr : [any]) => attr[0]), td]
+selectorsList = ds:descendantGroup td:(__ ',' __ descendantGroup)* __ {
+    return [ds, ...td.map((attr : any[]) => attr[3])]
 }
 
 
 /// Selectors
 descendantGroup = global:$('*'?) __ ds:descendantGroup_ {
-    ds.unshift(global)
+    if (global) ds.unshift(global);
     return ds;
 }
 
@@ -49,7 +53,15 @@ descendantGroup_ = s:selector { return [s] }
         return [...ss.map((s : any) => s[0]), sse];
     } // >=1
 
-selector = @(clazz / literal)
+selector = s:(clazz / literal) ps:pseudoSelector* {
+    return {...s, pseudoSelectors : ps }
+}
+
+pseudoSelector = ':' id:pseudoFunc '(' __ arg:$([^)])+ __ ')' {
+    return { class: id, arg }
+}
+
+pseudoFunc = "nth"
 
 literal = '$' expr:$litChar+ '$' { return { type : "literal", str: expr }; }
 

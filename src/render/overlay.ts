@@ -4,7 +4,7 @@ import { KatexOptions } from "katex";
 import { BoundingBox } from '../utils/boundingBox';
 import { resetVisibility, setVisible } from '../utils/visibility';
 import { toHTMLElement } from '../utils/dom';
-import { INSTANCE_DATA_ATTR } from '../ffl';
+import { INSTANCE_DATA_ATTR, SelectorInfo, toSelectorStrings } from '../ffl';
 import { IndexedInstance } from '../language/styleMarkers';
 
 const delimiterInElement = [{
@@ -188,7 +188,7 @@ function drawLabelGroup(labelInfo: {
 }
 
 export type LabelInfo = {
-    selector: string,
+    selectorInfo: SelectorInfo[],
     label: any,
     labelPosition?: "above" | "below" | "auto",
     labelMarker?: "line" | "extent",
@@ -197,19 +197,20 @@ export type LabelInfo = {
         y?: number
     }
 }[];
-export function drawLabels(labels: LabelInfo, root: HTMLElement) {
+export function drawLabels(labels: LabelInfo, root: HTMLElement, scopeKey: string) {
     // need to make sure element is rendered to find the bounding box
     let visibility = setVisible(root);
     try {
         let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
-        let labelInfo = labels.flatMap(({ selector, label, labelPosition, labelMarker, markerOffset }) =>
-            selector.split(',').map(ss => ({
-                selector: ss.trim(),
+        let labelInfo = labels.flatMap(({ selectorInfo, label, labelPosition, labelMarker, markerOffset }) =>
+            toSelectorStrings(selectorInfo, scopeKey).map((ss, idx) => ({
+                selector: ss,
+                classes: selectorInfo[idx].selectors.map(s => s.class),
                 label, labelPosition, labelMarker, markerOffset
             }))
-        ).map(({ selector, label, labelPosition, labelMarker, markerOffset }) => {
+        ).map(({ selector, classes, label, labelPosition, labelMarker, markerOffset }) => {
             let elements: Element[] = groupByInstance(
-                [...root.querySelectorAll(selector).values()], selector
+                [...root.querySelectorAll(selector).values()], classes
             )[0];
             let labelElement = document.createElement('div');
             switch (label.renderType) {
@@ -259,10 +260,7 @@ function groupByStyleInstance(
     return Object.values(groups);
 }
 
-function groupByInstance(elements: Element[], selector: string): Element[][] {
-    let classes =
-        selector.slice(selector.indexOf('\x20') + 1).split('.')
-            .filter(s => !(s === '' || s === 'visible'));
+function groupByInstance(elements: Element[], classes: string[]): Element[][] {
     let groups = [elements.map(element => ({
         element,
         instanceIndices: JSON.parse(element.getAttribute(INSTANCE_DATA_ATTR)!)
@@ -273,8 +271,8 @@ function groupByInstance(elements: Element[], selector: string): Element[][] {
     return groups.map(g => g.map(({ element }) => element));
 }
 
-export type BackgroundInfo = { selector: string, backgroundColor: any }[];
-export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement) {
+export type BackgroundInfo = { selectorInfo: SelectorInfo[], backgroundColor: any }[];
+export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement, scopeKey: string) {
     // need to make sure element is rendered to find the bounding box
     let visibility = setVisible(root);
     try {
@@ -291,11 +289,15 @@ export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement
             ${rootBoundingBox.width} ${rootBoundingBox.height}`);
 
         root.style.position = 'relative';
-        backgroundInfo.flatMap(({ selector, backgroundColor }) =>
-            selector.split(',').map(ss => ({ selector: ss.trim(), backgroundColor }))
-        ).forEach(({ selector, backgroundColor }) =>
+        backgroundInfo.flatMap(({ selectorInfo, backgroundColor }) =>
+            toSelectorStrings(selectorInfo, scopeKey).map((ss, idx) => ({
+                selector: ss,
+                classes: selectorInfo[idx].selectors.map(s => s.class),
+                backgroundColor
+            }))
+        ).forEach(({ selector, classes, backgroundColor }) =>
             groupByInstance(
-                [...root.querySelectorAll(selector).values()], selector
+                [...root.querySelectorAll(selector).values()], classes
             ).map(group => {
                 var bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                 bgRect.setAttribute('stroke', 'none');

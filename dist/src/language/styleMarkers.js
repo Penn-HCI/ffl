@@ -3,13 +3,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.flatten = exports.markClasses = exports.markConstants = exports.markMatches = exports.getFFLMarker = exports.fflMarker = exports.fflMarkerCmd = exports.fflPrefix = void 0;
+exports.flatten = exports.markClasses = exports.markDoubleGroups = exports.markConstants = exports.markMatches = exports.getFFLMarker = exports.fflMarker = exports.fflMarkerCmd = exports.fflPrefix = void 0;
 const lodash_1 = __importDefault(require("lodash"));
 const common_1 = require("../utils/common");
 // TODO: lift out more shared constants
 exports.fflPrefix = "\\ffl@";
 exports.fflMarkerCmd = "\\fflMarker";
-function fflMarker(cmd, ...arg) { return `${exports.fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`; }
+function fflMarker(cmd, ...arg) {
+    return `${exports.fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`;
+}
 exports.fflMarker = fflMarker;
 function getFFLMarker(node) {
     var _a, _b;
@@ -74,16 +76,19 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
                 .forEach(matcher => {
                 var _a, _b;
                 var _c, _d;
-                (_a = startStyles[_c = matcher.startIdx]) !== null && _a !== void 0 ? _a : (startStyles[_c] = []);
-                startStyles[matcher.startIdx].push({
-                    end: idx + 1,
-                    style: matcher.key
-                });
-                (_b = endStyles[_d = idx + 1]) !== null && _b !== void 0 ? _b : (endStyles[_d] = []);
-                endStyles[idx + 1].push({
-                    start: matcher.startIdx,
-                    style: matcher.key
-                });
+                if (!(['^', '_'].includes(source[idx + 1])
+                    && ['^', '_'].some(t => source.slice(matcher.startIdx, idx + 1).includes(t)))) {
+                    (_a = startStyles[_c = matcher.startIdx]) !== null && _a !== void 0 ? _a : (startStyles[_c] = []);
+                    startStyles[matcher.startIdx].push({
+                        end: idx + 1,
+                        style: matcher.key
+                    });
+                    (_b = endStyles[_d = idx + 1]) !== null && _b !== void 0 ? _b : (endStyles[_d] = []);
+                    endStyles[idx + 1].push({
+                        start: matcher.startIdx,
+                        style: matcher.key
+                    });
+                }
             });
         }
     }
@@ -131,33 +136,68 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
 }
 exports.markMatches = markMatches;
 // note that this mutates the array
-function markConstants(latex, count) {
-    var _a, _b;
-    var tree = !Array.isArray(latex) ? [latex] : latex;
-    count !== null && count !== void 0 ? count : (count = 0);
-    for (var i = 0; i < tree.length; i++) {
-        if (Array.isArray(tree[i])) {
-            tree[i] = markConstants(tree[i], count);
-        }
-        else {
-            if (((_a = tree[i]) !== null && _a !== void 0 ? _a : '').match(/^\d+$/g)) {
-                tree.splice(i, 0, fflMarker("startStyle", "constant", (count++).toString()));
-                do {
-                    i++;
-                } while (((_b = tree[i]) !== null && _b !== void 0 ? _b : '').match(/^\d+$/g));
-                tree.splice(i, 0, fflMarker("endStyle", "constant", count.toString()));
+function markConstants(latex, counter) {
+    var tree = lodash_1.default.clone(latex);
+    counter !== null && counter !== void 0 ? counter : (counter = { count: 0 });
+    if (Array.isArray(tree)) {
+        for (var i = 0; i < tree.length; i++) {
+            if (Array.isArray(tree[i])) {
+                tree[i] = markConstants(tree[i], counter);
             }
+            else {
+                if (!Number.isNaN(parseFloat(tree[i]))) {
+                    let count = counter.count++;
+                    tree.splice(i, 0, fflMarker("startStyle", "constant", count.toString()));
+                    do {
+                        i++;
+                    } while (!Number.isNaN(parseFloat(tree[i])));
+                    tree.splice(i, 0, fflMarker("endStyle", "constant", count.toString()));
+                }
+            }
+        }
+    }
+    else {
+        if (!Number.isNaN(parseFloat(tree))) {
+            let count = counter.count++;
+            tree = [
+                fflMarker("startStyle", "constant", count.toString()),
+                tree,
+                fflMarker("endStyle", "constant", count.toString())
+            ];
         }
     }
     return tree;
 }
 exports.markConstants = markConstants;
+function markDoubleGroups(latex, counter, markRoot) {
+    var tree = latex;
+    let ret = tree;
+    if ((markRoot !== null && markRoot !== void 0 ? markRoot : (markRoot = true)))
+        tree = Array.isArray(latex) ? [latex] : [[latex]];
+    if (Array.isArray(tree)) {
+        counter !== null && counter !== void 0 ? counter : (counter = { count: 0 });
+        ret = [];
+        let isDoubleGroup = tree.length == 1 && Array.isArray(tree[0]);
+        let count = counter.count;
+        if (isDoubleGroup) {
+            count = counter.count++;
+            ret.push(fflMarker("startStyle", "ffl-group", count.toString()));
+        }
+        tree.forEach(t => ret.push(markDoubleGroups(t, counter, false)));
+        if (isDoubleGroup) {
+            ret.push(fflMarker("endStyle", "ffl-group", count.toString()));
+        }
+    }
+    return ret;
+}
+exports.markDoubleGroups = markDoubleGroups;
 const classes = {
     '^': ['superscript'],
     '_': ['subscript'],
     '\\text': ['text'],
     '\\frac': ['numerator', 'denominator'],
 };
+// FIXME: count ordering
 function markClasses(tokens, instanceCounts) {
     var _a, _b, _c;
     var _d;
@@ -168,7 +208,7 @@ function markClasses(tokens, instanceCounts) {
         var tok;
         while (tok = _tokens.pop()) {
             if (Array.isArray(tok)) {
-                ret.push(markClasses(tok));
+                ret.push(markClasses(tok, instanceCounts));
             }
             else {
                 let cmdClasses = classes[tok];
@@ -198,7 +238,7 @@ function flatten(tokens) {
         return ['{', ...tokens.map(flatten), '}'].flat();
     }
     else {
-        return tokens;
+        return [tokens];
     }
 }
 exports.flatten = flatten;
