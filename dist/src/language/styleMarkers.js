@@ -197,10 +197,37 @@ const classes = {
     '\\text': ['text'],
     '\\frac': ['numerator', 'denominator'],
 };
-// FIXME: count ordering
-function markClasses(tokens, instanceCounts) {
+function _normalizeAndCountClasses(tokens, instanceCounts) {
     var _a, _b, _c;
     var _d;
+    let _tokens = lodash_1.default.clone(tokens);
+    if (Array.isArray(_tokens)) {
+        var ret = [];
+        var tok;
+        while (tok = _tokens.pop()) {
+            if (Array.isArray(tok)) {
+                ret.push(_normalizeAndCountClasses(tok, instanceCounts));
+            }
+            else {
+                let cmdClasses = classes[tok];
+                let expandedArgs = [];
+                for (var j = 0; j < ((_a = cmdClasses === null || cmdClasses === void 0 ? void 0 : cmdClasses.length) !== null && _a !== void 0 ? _a : 0); j++) {
+                    let arg = (_b = ret.pop()) !== null && _b !== void 0 ? _b : [];
+                    expandedArgs.push(Array.isArray(arg) ? arg : [arg]);
+                    (_c = instanceCounts[_d = cmdClasses[j]]) !== null && _c !== void 0 ? _c : (instanceCounts[_d] = 0);
+                    instanceCounts[cmdClasses[j]]++;
+                }
+                ret.push(...expandedArgs.reverse(), tok);
+            }
+        }
+        return ret.reverse();
+    }
+    else {
+        return _tokens;
+    }
+}
+function _markClasses(tokens, instanceCounts) {
+    var _a, _b;
     let _tokens = lodash_1.default.cloneDeep(tokens);
     instanceCounts !== null && instanceCounts !== void 0 ? instanceCounts : (instanceCounts = {});
     if (Array.isArray(_tokens)) {
@@ -208,7 +235,7 @@ function markClasses(tokens, instanceCounts) {
         var tok;
         while (tok = _tokens.pop()) {
             if (Array.isArray(tok)) {
-                ret.push(markClasses(tok, instanceCounts));
+                ret.push(_markClasses(tok, instanceCounts));
             }
             else {
                 let cmdClasses = classes[tok];
@@ -218,9 +245,9 @@ function markClasses(tokens, instanceCounts) {
                     if (!Array.isArray(arg))
                         arg = [arg];
                     expandedArgs.push([
-                        fflMarker("startStyle", cmdClasses[j], ((_c = instanceCounts[_d = cmdClasses[j]]) !== null && _c !== void 0 ? _c : (instanceCounts[_d] = 0)).toString()),
+                        fflMarker("startStyle", cmdClasses[j], (--instanceCounts[cmdClasses[j]]).toString()),
                         ...arg,
-                        fflMarker("endStyle", cmdClasses[j], (instanceCounts[cmdClasses[j]]++).toString())
+                        fflMarker("endStyle", cmdClasses[j], instanceCounts[cmdClasses[j]].toString())
                     ]);
                 }
                 ret.push(...expandedArgs.reverse(), tok);
@@ -231,6 +258,12 @@ function markClasses(tokens, instanceCounts) {
     else {
         return _tokens;
     }
+}
+// TODO: can this be done in single pass?
+function markClasses(tokens, instanceCounts) {
+    instanceCounts !== null && instanceCounts !== void 0 ? instanceCounts : (instanceCounts = {});
+    let normalized = _normalizeAndCountClasses(tokens, instanceCounts);
+    return _markClasses(normalized, instanceCounts);
 }
 exports.markClasses = markClasses;
 function flatten(tokens) {

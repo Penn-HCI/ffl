@@ -200,8 +200,33 @@ const classes: { [key: string]: string[] } = {
     '\\frac': ['numerator', 'denominator'],
 }
 
-// FIXME: count ordering
-export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree {
+function _normalizeAndCountClasses(tokens: TokenTree, instanceCounts: InstanceCounts): TokenTree {
+    let _tokens = _.clone(tokens);
+    if (Array.isArray(_tokens)) {
+        var ret: TokenTree[] = [];
+        var tok: TokenTree | undefined;
+        while (tok = _tokens.pop()) {
+            if (Array.isArray(tok)) {
+                ret.push(_normalizeAndCountClasses(tok, instanceCounts));
+            } else {
+                let cmdClasses = classes[tok];
+                let expandedArgs: TokenTree[] = [];
+                for (var j = 0; j < (cmdClasses?.length ?? 0); j++) {
+                    let arg = ret.pop() ?? [];
+                    expandedArgs.push(Array.isArray(arg) ? arg : [arg]);
+                    instanceCounts[cmdClasses[j]] ??= 0;
+                    instanceCounts[cmdClasses[j]]++;
+                }
+                ret.push(...expandedArgs.reverse(), tok);
+            }
+        }
+        return ret.reverse();
+    } else {
+        return _tokens;
+    }
+}
+
+function _markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree {
     let _tokens = _.cloneDeep(tokens);
     instanceCounts ??= {};
     if (Array.isArray(_tokens)) {
@@ -209,7 +234,7 @@ export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts):
         var tok: TokenTree | undefined;
         while (tok = _tokens.pop()) {
             if (Array.isArray(tok)) {
-                ret.push(markClasses(tok, instanceCounts));
+                ret.push(_markClasses(tok, instanceCounts));
             } else {
                 let cmdClasses = classes[tok];
                 let expandedArgs: TokenTree[] = [];
@@ -218,10 +243,10 @@ export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts):
                     if (!Array.isArray(arg)) arg = [arg];
                     expandedArgs.push([
                         fflMarker("startStyle", cmdClasses[j],
-                            (instanceCounts[cmdClasses[j]] ??= 0).toString()),
+                            (--instanceCounts[cmdClasses[j]]).toString()),
                         ...arg,
                         fflMarker("endStyle", cmdClasses[j],
-                            (instanceCounts[cmdClasses[j]]++).toString())
+                            instanceCounts[cmdClasses[j]].toString())
                     ]);
                 }
                 ret.push(...expandedArgs.reverse(), tok);
@@ -231,6 +256,13 @@ export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts):
     } else {
         return _tokens;
     }
+}
+
+// TODO: can this be done in single pass?
+export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree {
+    instanceCounts ??= {};
+    let normalized = _normalizeAndCountClasses(tokens, instanceCounts);
+    return _markClasses(normalized, instanceCounts);
 }
 
 export function flatten(tokens: TokenTree): string | string[] {
