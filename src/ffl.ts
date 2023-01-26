@@ -73,8 +73,8 @@ function overrideOptions(options: KatexOptions | any, fflParse: grammar.FFLStyle
         // we need additional spaces since we are concat'ing back to string
         for (var i = 1; i < latexWithMarkers.length; i++) {
           let tok = latexWithMarkers[i - 1];
-          if (tok.startsWith('\\') && tok.charAt(tok.length - 1).match(/^[a-z0-9]+$/g)
-            && latexWithMarkers[i].charAt(0).match(/^[a-z0-9]+$/g)) {
+          if (tok.startsWith('\\') && tok.charAt(tok.length - 1).match(/[A-Za-z0-9]+$/g)
+            && latexWithMarkers[i].charAt(0).match(/^[A-Za-z0-9]+/g)) {
             latexWithMarkers.splice(i, 0, ' ');
           }
         }

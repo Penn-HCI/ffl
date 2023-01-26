@@ -262,8 +262,8 @@ function _markClasses(tokens, instanceCounts) {
 // TODO: can this be done in single pass?
 function markClasses(tokens, instanceCounts) {
     instanceCounts !== null && instanceCounts !== void 0 ? instanceCounts : (instanceCounts = {});
-    let normalized = _normalizeAndCountClasses(tokens, instanceCounts);
-    return _markClasses(normalized, instanceCounts);
+    let normalize = _normalizeAndCountClasses(tokens, instanceCounts);
+    return _markClasses(tokens, instanceCounts);
 }
 exports.markClasses = markClasses;
 function flatten(tokens) {

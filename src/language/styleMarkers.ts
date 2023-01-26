@@ -261,8 +261,8 @@ function _markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): Token
 // TODO: can this be done in single pass?
 export function markClasses(tokens: TokenTree, instanceCounts?: InstanceCounts): TokenTree {
     instanceCounts ??= {};
-    let normalized = _normalizeAndCountClasses(tokens, instanceCounts);
-    return _markClasses(normalized, instanceCounts);
+    let normalize = _normalizeAndCountClasses(tokens, instanceCounts);
+    return _markClasses(tokens, instanceCounts);
 }
 
 export function flatten(tokens: TokenTree): string | string[] {
