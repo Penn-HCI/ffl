@@ -8,34 +8,44 @@ _<span style="font-variant:small-caps;">selectors...</span>_ `{`
 ### Selectors
 #### Literal Selectors - `$` _<span style="font-variant:small-caps;">$\LaTeX$</span>_ `$`
 The $\LaTeX$ string should generally match what your write in LaTeX, while you can use wildcards (see below) to enable more flexible selection.
-##### Wildcards <sup>*do not escape `{`...`}` groups</sup>
-###### Any Single Character - `\?`
-###### Any Character Sequence - `\*`
+
+You can use wildcards in your literal selectors. To match any _single token/group_, use `?`. For a _sequence of any length_, use `*`. Note that wildcards are bounded by `{`...`}` groups and `*` selects the longest possible match.
+
+To match the literal character of the wildcards use `\?` for "?" or `\*` for "*".
+
 #### Special Classes
-|  _selector_    | Description                |
-|----------------|----------------------------|
-| `.numerator`   | any numerator of `\frac`   |
-| `.denominator` | any denominator of `\frac` |
-| `.superscript` | any superscript after `^`  |
-| `.subscript`   | any denominator after `_`  |
+You can also use special pre-configured classes in the same syntax as CSS (`.` prefix). The available list is as follows,
+|  _selector_    | Description                            |
+|----------------|----------------------------------------|
+| `.numerator`   | any numerator of `\frac`               |
+| `.denominator` | any denominator of `\frac`             |
+| `.superscript` | any superscript after `^`              |
+| `.subscript`   | any denominator after `_`              |
+| `.constant`    | any string consisting of only `0`-`9`  |
 
-#### Selector Combinators <sup>*_<span style="font-variant:small-caps;">and</span>_ has higher precedence than _<span style="font-variant:small-caps;">or</span>_</sup>
-##### _<span style="font-variant:small-caps;">and</span>_ Combinator - `⎵` (space)
-_<span style="font-variant:small-caps;">selector</span>_` `_<span style="font-variant:small-caps;">selector</span>_  
+#### Selector Combinators 
+You can combine selectors with some simple logical operations.Note that _<span style="font-variant:small-caps;">and</span>_ has higher precedence than _<span style="font-variant:small-caps;">or</span>_, meaning that the selector section you can use for a block looks like either
+- a single selector as described above
+- a comma separated list of either single selectors or intersections
+##### _<span style="font-variant:small-caps;">and</span>_ Combinator - `intersection(...)`
+`intersection(`
+_<span style="font-variant:small-caps;">selector</span>_`,`...`,`_<span style="font-variant:small-caps;">selector</span>_`)`  
 
-For example, `$x_\?$ .constant` would only select a constant subscript under $x$ (e.g. $1$ in $x_1$ but not $n$ in $x_n$).
+For example, `intersection($x_\?$, .constant)` would only select a constant subscript under $x$ (e.g. $1$ in $x_1$ but not $n$ in $x_n$).
 ##### _<span style="font-variant:small-caps;">or</span>_ Combinator - `,`
 _<span style="font-variant:small-caps;">selector</span>_`,`_<span style="font-variant:small-caps;">selector</span>_  
 
 For example, `$x$, $y$` would only select any $x$ and any $y$. It is the same as writing the same style block for both selectors.
 ### Attributes
 #### CSS Attributes
-We expect most basic [CSS properties](https://www.w3schools.com/cssref/) as _<span style="font-variant:small-caps;">attribute-key</span>s_ and _<span style="font-variant:small-caps;">value</span>s_ to work.
+We expect most basic [CSS properties](https://www.w3schools.com/cssref/) as _<span style="font-variant:small-caps;">attribute-key</span>s_ and _<span style="font-variant:small-caps;">value</span>s_ to work. Common ones you might need include `color`, `background-color`, etc. and their values follow the format of their CSS counter parts.
 
 #### FFL Specific Attributes
 |_<span style="font-variant:small-caps;">attribute-key</span>_|_<span style="font-variant:small-caps;">value</span>_|
 |---------|----------------------|
 | `label` | any _<span style="font-variant:small-caps;">string</span>_ terminated by the attribute-dividing `;` |
+| `label-position` | `above`/`below`/`auto` |
+| `label-marker` | `extend`/`line`/`none` |
 
 ## Example
 | FFL | LaTeX | Output |
