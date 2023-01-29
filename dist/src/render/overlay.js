@@ -157,11 +157,9 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         if (((_a = labelInfo[idx].labelMarker) !== null && _a !== void 0 ? _a : 'line') === 'line') {
             let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('d', rebasedPath(node.data.symbolBoundingBox.center.horizontal + ((_c = (_b = labelInfo[idx].markerOffset) === null || _b === void 0 ? void 0 : _b.x) !== null && _c !== void 0 ? _c : 0), (direction == "up"
-                ? node.data.symbolBoundingBox.top
-                : node.data.symbolBoundingBox.bottom - anchorLineY)
+                ? node.data.symbolBoundingBox.top - 2
+                : node.data.symbolBoundingBox.bottom - anchorLineY + 2)
                 + ((_e = (_d = labelInfo[idx].markerOffset) === null || _d === void 0 ? void 0 : _d.y) !== null && _e !== void 0 ? _e : 0)));
-            console.log(renderer.generatePath(node));
-            console.log(renderer.getWaypoints(node));
             path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy / 4})`);
             Object.assign(path.style, { stroke: 'black', fill: 'none' });
             labelsOverlay.appendChild(path);
@@ -169,13 +167,13 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         else if (labelInfo[idx].labelMarker === 'extent') {
             let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             let base = direction === 'up' ? anchorLineY - 4 : anchorLineY - rootBoundingBox.height + 4;
+            let braceY = direction === 'up' ? base + 4 : base - 4;
             path.setAttribute('d', rebasedPath(node.data.symbolBoundingBox.center.horizontal + ((_g = (_f = labelInfo[idx].markerOffset) === null || _f === void 0 ? void 0 : _f.x) !== null && _g !== void 0 ? _g : 0), base + ((_j = (_h = labelInfo[idx].markerOffset) === null || _h === void 0 ? void 0 : _h.y) !== null && _j !== void 0 ? _j : 0)));
             path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy / 4})`);
             Object.assign(path.style, { stroke: 'black', fill: 'none' });
             let brace = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            let edgeY = direction === 'up' ? node.data.symbolBoundingBox.top : node.data.symbolBoundingBox.bottom - rootBoundingBox.height;
-            brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${edgeY}
-                V${base} H${node.data.symbolBoundingBox.right} V${edgeY}`);
+            brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${braceY}
+                V${base} H${node.data.symbolBoundingBox.right} V${braceY}`);
             brace.setAttribute('transform', `translate(${(_l = (_k = labelInfo[idx].markerOffset) === null || _k === void 0 ? void 0 : _k.x) !== null && _l !== void 0 ? _l : 0}, ${anchorLineY - node.dy / 4 + ((_o = (_m = labelInfo[idx].markerOffset) === null || _m === void 0 ? void 0 : _m.y) !== null && _o !== void 0 ? _o : 0)})`);
             Object.assign(brace.style, { stroke: 'black', fill: 'none' });
             labelsOverlay.appendChild(path);

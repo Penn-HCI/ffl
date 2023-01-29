@@ -156,17 +156,17 @@ function drawLabelGroup(labelInfo: {
             path.setAttribute('d',
                 rebasedPath(node.data.symbolBoundingBox.center.horizontal + (labelInfo[idx].markerOffset?.x ?? 0)
                     , (direction == "up"
-                        ? node.data.symbolBoundingBox.top
-                        : node.data.symbolBoundingBox.bottom - anchorLineY)
+                        ? node.data.symbolBoundingBox.top - 2
+                        : node.data.symbolBoundingBox.bottom - anchorLineY + 2)
                     + (labelInfo[idx].markerOffset?.y ?? 0)));
-            console.log(renderer.generatePath(node));
-            console.log(renderer.getWaypoints(node));
             path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
             Object.assign(path.style, { stroke: 'black', fill: 'none' });
             labelsOverlay.appendChild(path);
         } else if (labelInfo[idx].labelMarker === 'extent') {
             let path: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             let base = direction === 'up' ? anchorLineY - 4 : anchorLineY - rootBoundingBox.height + 4;
+            let braceY = direction === 'up' ? base + 4 : base - 4;
+
             path.setAttribute('d', rebasedPath(
                 node.data.symbolBoundingBox.center.horizontal + (labelInfo[idx].markerOffset?.x ?? 0),
                 base + (labelInfo[idx].markerOffset?.y ?? 0)));
@@ -174,9 +174,8 @@ function drawLabelGroup(labelInfo: {
             Object.assign(path.style, { stroke: 'black', fill: 'none' });
 
             let brace: SVGPathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            let edgeY = direction === 'up' ? node.data.symbolBoundingBox.top : node.data.symbolBoundingBox.bottom - rootBoundingBox.height;
-            brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${edgeY}
-                V${base} H${node.data.symbolBoundingBox.right} V${edgeY}`);
+            brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${braceY}
+                V${base} H${node.data.symbolBoundingBox.right} V${braceY}`);
             brace.setAttribute('transform',
                 `translate(${labelInfo[idx].markerOffset?.x ?? 0}, ${anchorLineY - node.dy! / 4 + (labelInfo[idx].markerOffset?.y ?? 0)})`);
             Object.assign(brace.style, { stroke: 'black', fill: 'none' });

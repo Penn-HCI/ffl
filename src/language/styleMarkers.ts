@@ -78,7 +78,7 @@ export function markMatches(src: TokenTree[],
                     if (!(['^', '_'].includes(source[idx + 1] as string)
                         && ['^', '_'].some(t => source.slice(matcher.startIdx!, idx + 1).includes(t)))) {
                         startStyles[matcher.startIdx!] ??= [];
-                        startStyles[matcher.startIdx!].push({
+                        startStyles[matcher.startIdx!].unshift({
                             end: idx + 1,
                             style: matcher.key
                         });

@@ -79,7 +79,7 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
                 if (!(['^', '_'].includes(source[idx + 1])
                     && ['^', '_'].some(t => source.slice(matcher.startIdx, idx + 1).includes(t)))) {
                     (_a = startStyles[_c = matcher.startIdx]) !== null && _a !== void 0 ? _a : (startStyles[_c] = []);
-                    startStyles[matcher.startIdx].push({
+                    startStyles[matcher.startIdx].unshift({
                         end: idx + 1,
                         style: matcher.key
                     });
