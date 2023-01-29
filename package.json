@@ -25,8 +25,10 @@
   },
   "main": "./dist/ffl.js",
   "directories": {
-    "src": "src"
+    "src": "src",
+    "dist": "dist"
   },
+  "files": [ "dist" ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wu000168/ffl.git"

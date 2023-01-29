@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import 'github-markdown-css/github-markdown.css';
-import { Card, Container, CssBaseline, MenuItem, Select, Stack } from '@mui/material';
+import { Card, Container, Stack } from '@mui/material';
 import MarkdownIt from 'markdown-it';
 import * as ffl from 'ffl';
 import { GrammarError } from 'peggy';

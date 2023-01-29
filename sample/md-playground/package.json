@@ -1,8 +1,8 @@
 {
   "name": "md-playground",
   "version": "0.1.0",
-  "private": true,
-  "homepage": "https://wu000168.github.io/ffl-playground-site",
+  "private": false,
+  "homepage": "https://wu000168.github.io/ffl-playground-site/",
   "dependencies": {
     "@emotion/react": "^11.10.4",
     "@emotion/styled": "^11.10.4",
