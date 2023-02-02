@@ -117,6 +117,14 @@ function drawLabelGroup(labelInfo: {
     }), rootBoundingBox.relativeTo(rootBoundingBox))!;
 
     let anchorLineY = direction == "up" ? 0 : rootBoundingBox.height;
+    
+    Object.assign(labelsOverlay.style, {
+        position: 'absolute',
+        top: viewBox.top - nodeHeight! / 2 + anchorLineY,
+        left: viewBox.left,
+        width: viewBox.width,
+        height: viewBox.height + nodeHeight
+    });
     if (direction === "up") {
         let style = root.getAttribute('style');
         if (style && !style.endsWith(';')) style += ';';
@@ -125,16 +133,9 @@ function drawLabelGroup(labelInfo: {
     if (direction === "down") {
         let style = root.getAttribute('style');
         if (style && !style.endsWith(';')) style += ';';
-        root.setAttribute('style', style + ` margin-bottom: ${viewBox.bottom - rootBoundingBox.height + nodeHeight}px;`);
+        root.setAttribute('style', style + ` margin-bottom: ${viewBox.height - rootBoundingBox.height + nodeHeight}px;`);
     }
 
-    Object.assign(labelsOverlay.style, {
-        position: 'absolute',
-        top: viewBox.top - nodeHeight! / 2 + anchorLineY,
-        left: viewBox.left,
-        width: viewBox.width,
-        height: viewBox.height + nodeHeight
-    });
     labelsOverlay.setAttribute('viewBox',
         `${viewBox.left} ${viewBox.top - nodeHeight / 2 + anchorLineY} ${viewBox.width} ${viewBox.height + nodeHeight / 2}`);
 
