@@ -61,7 +61,7 @@ function fixGroups(tokens) {
                     if (!Array.isArray(arg))
                         arg = [arg];
                     if (isCmd) {
-                        for (var k = 0; k < (isCmd !== null && isCmd !== void 0 ? isCmd : 0); j++) {
+                        for (var k = 0; k < (isCmd !== null && isCmd !== void 0 ? isCmd : 0); k++) {
                             let arg_ = ret.pop();
                             if (arg_)
                                 arg.push(arg_);

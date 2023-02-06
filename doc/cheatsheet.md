@@ -1,4 +1,4 @@
-# FFL Cheatsheet
+# Cheatsheet
 ## General Syntax
 _<span style="font-variant:small-caps;">selectors...</span>_ `{`  
 &nbsp;&nbsp;_<span style="font-variant:small-caps;">attribute-key</span>_`:` _<span style="font-variant:small-caps;">value</span>_`;`  

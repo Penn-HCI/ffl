@@ -55,7 +55,7 @@ function fixGroups(tokens: TokenTree): TokenTree {
                     let isCmd = typeof arg === 'string' && cmdArgLens[arg];
                     if (!Array.isArray(arg)) arg = [arg];
                     if (isCmd) {
-                        for (var k = 0; k < (isCmd ?? 0); j++) {
+                        for (var k = 0; k < (isCmd ?? 0); k++) {
                             let arg_ = ret.pop();
                             if (arg_) arg.push(arg_);
                         }
