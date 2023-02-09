@@ -45,7 +45,7 @@ We expect most basic [CSS properties](https://www.w3schools.com/cssref/) as _<sp
 |---------|----------------------|
 | `label` | any _<span style="font-variant:small-caps;">string</span>_ terminated by the attribute-dividing `;` |
 | `label-position` | `above`/`below`/`auto` |
-| `label-marker` | `extend`/`line`/`none` |
+| `label-marker` | `extent`/`line`/`none` |
 
 ## Example
 | FFL | LaTeX | Output |
