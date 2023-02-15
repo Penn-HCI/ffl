@@ -140,7 +140,7 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
     }
     labelsOverlay.setAttribute('viewBox', `${viewBox.left} ${viewBox.top - nodeHeight / 2 + anchorLineY} ${viewBox.width} ${viewBox.height + nodeHeight / 2}`);
     nodes.forEach((node, idx) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         labels[idx].setAttribute('overflow', 'visible');
         labels[idx].setAttribute('x', `${node.x - node.dx / 2}`);
         labels[idx].setAttribute('width', `${node.dx}`);
@@ -154,31 +154,21 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
             let defaultPath = renderer.generatePath(node); // TODO: Generate own path to accommodate more range of offsets
             return `M${x} ${y} ` + defaultPath.slice(defaultPath.indexOf('C'));
         };
-        if (((_a = labelInfo[idx].labelMarker) !== null && _a !== void 0 ? _a : 'line') === 'line') {
-            let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', rebasedPath(node.data.symbolBoundingBox.center.horizontal + ((_c = (_b = labelInfo[idx].markerOffset) === null || _b === void 0 ? void 0 : _b.x) !== null && _c !== void 0 ? _c : 0), (direction == "up"
-                ? node.data.symbolBoundingBox.top - 2
-                : node.data.symbolBoundingBox.bottom - anchorLineY + 2)
-                + ((_e = (_d = labelInfo[idx].markerOffset) === null || _d === void 0 ? void 0 : _d.y) !== null && _e !== void 0 ? _e : 0)));
-            path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy / 4})`);
-            Object.assign(path.style, { stroke: 'black', fill: 'none' });
-            labelsOverlay.appendChild(path);
-        }
-        else if (labelInfo[idx].labelMarker === 'extent') {
-            let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            let base = direction === 'up' ? anchorLineY - 4 : anchorLineY - rootBoundingBox.height + 4;
-            let braceY = direction === 'up' ? base + 4 : base - 4;
-            path.setAttribute('d', rebasedPath(node.data.symbolBoundingBox.center.horizontal + ((_g = (_f = labelInfo[idx].markerOffset) === null || _f === void 0 ? void 0 : _f.x) !== null && _g !== void 0 ? _g : 0), base + ((_j = (_h = labelInfo[idx].markerOffset) === null || _h === void 0 ? void 0 : _h.y) !== null && _j !== void 0 ? _j : 0)));
-            path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy / 4})`);
-            Object.assign(path.style, { stroke: 'black', fill: 'none' });
+        let path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        let base = direction === 'up' ? anchorLineY - 4 : anchorLineY - rootBoundingBox.height + 4;
+        let braceY = direction === 'up' ? base + 4 : base - 4;
+        path.setAttribute('d', rebasedPath(node.data.symbolBoundingBox.center.horizontal + ((_b = (_a = labelInfo[idx].markerOffset) === null || _a === void 0 ? void 0 : _a.x) !== null && _b !== void 0 ? _b : 0), base + ((_d = (_c = labelInfo[idx].markerOffset) === null || _c === void 0 ? void 0 : _c.y) !== null && _d !== void 0 ? _d : 0)));
+        path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy / 4})`);
+        Object.assign(path.style, { stroke: 'black', fill: 'none' });
+        if (labelInfo[idx].labelMarker === 'extent') {
             let brace = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${braceY}
                 V${base} H${node.data.symbolBoundingBox.right} V${braceY}`);
-            brace.setAttribute('transform', `translate(${(_l = (_k = labelInfo[idx].markerOffset) === null || _k === void 0 ? void 0 : _k.x) !== null && _l !== void 0 ? _l : 0}, ${anchorLineY - node.dy / 4 + ((_o = (_m = labelInfo[idx].markerOffset) === null || _m === void 0 ? void 0 : _m.y) !== null && _o !== void 0 ? _o : 0)})`);
+            brace.setAttribute('transform', `translate(${(_f = (_e = labelInfo[idx].markerOffset) === null || _e === void 0 ? void 0 : _e.x) !== null && _f !== void 0 ? _f : 0}, ${anchorLineY - node.dy / 4 + ((_h = (_g = labelInfo[idx].markerOffset) === null || _g === void 0 ? void 0 : _g.y) !== null && _h !== void 0 ? _h : 0)})`);
             Object.assign(brace.style, { stroke: 'black', fill: 'none' });
-            labelsOverlay.appendChild(path);
             labelsOverlay.appendChild(brace);
         }
+        labelsOverlay.appendChild(path);
     });
 }
 function drawLabels(labels, root, scopeKey) {
@@ -192,7 +182,8 @@ function drawLabels(labels, root, scopeKey) {
             label, labelPosition, labelMarker, markerOffset
         }))).map(({ selector, classes, label, labelPosition, labelMarker, markerOffset }) => {
             var _a;
-            let elements = groupByInstance([...root.querySelectorAll(selector).values()], classes)[0];
+            let elements = groupByInstance([...root.querySelectorAll(selector).values()].filter(isVisible), classes)[0];
+            console.log(elements);
             let labelElement = document.createElement('div');
             switch (label.renderType) {
                 case "html":
@@ -214,7 +205,7 @@ function drawLabels(labels, root, scopeKey) {
         let [top, bottom] = (0, lodash_1.partition)(labelInfo, info => {
             var _a;
             return (info.labelPosition && info.labelPosition !== 'auto') ? info.labelPosition === 'above'
-                : ((_a = info.symbolBoundingBox) === null || _a === void 0 ? void 0 : _a.center.vertical) >= center.vertical;
+                : ((_a = info.symbolBoundingBox) === null || _a === void 0 ? void 0 : _a.center.vertical) <= center.vertical;
         });
         root.style.position = 'relative';
         if (bottom.length > 0)
@@ -248,6 +239,11 @@ function groupByInstance(elements, classes) {
     }
     return groups.map(g => g.map(({ element }) => element));
 }
+function isVisible(element) {
+    return true;
+    // return element.tagName === 'svg' || element.nodeType === Node.TEXT_NODE
+    //     || [...element.children].some(e => isVisible(e));
+}
 function drawBackground(backgroundInfo, root, scopeKey) {
     // need to make sure element is rendered to find the bounding box
     let visibility = (0, visibility_1.setVisible)(root);
@@ -268,7 +264,7 @@ function drawBackground(backgroundInfo, root, scopeKey) {
             selector: ss,
             classes: selectorInfo[idx].selectors.map(s => s.class),
             backgroundColor
-        }))).forEach(({ selector, classes, backgroundColor }) => groupByInstance([...root.querySelectorAll(selector).values()], classes).map(group => {
+        }))).forEach(({ selector, classes, backgroundColor }) => groupByInstance([...root.querySelectorAll(selector).values()].filter(isVisible), classes).map(group => {
             var bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
             bgRect.setAttribute('stroke', 'none');
             bgRect.setAttribute('fill', backgroundColor);
