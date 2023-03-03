@@ -92,6 +92,13 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
             });
         }
     }
+    for (var idx = 0; idx < source.length; idx++) {
+        let tok = source[idx];
+        if (Array.isArray(tok)) {
+            source[idx] =
+                markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts);
+        }
+    }
     // some duplicate work over here de-duping the match ranges
     // could do this in the previous loop to optimize once finalized
     // FIXME: this the finds the longest match starting at each idx
@@ -116,13 +123,6 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
                 ((_a = markers[idx]) !== null && _a !== void 0 ? _a : (markers[idx] = [])).push(fflMarker("startStyle", style, instanceIdx.toString()));
                 ((_b = markers[end]) !== null && _b !== void 0 ? _b : (markers[end] = [])).unshift(fflMarker("endStyle", style, instanceIdx.toString()));
             });
-        }
-    }
-    for (var idx = 0; idx < source.length; idx++) {
-        let tok = source[idx];
-        if (Array.isArray(tok)) {
-            source[idx] =
-                markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts);
         }
     }
     var latexWithMarkers = [];

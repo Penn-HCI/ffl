@@ -91,6 +91,15 @@ export function markMatches(src: TokenTree[],
                 });
         }
     }
+
+    for (var idx = 0; idx < source.length; idx++) {
+        let tok = source[idx];
+        if (Array.isArray(tok)) {
+            (source as any[])[idx] =
+                markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts)
+        }
+    }
+
     // some duplicate work over here de-duping the match ranges
     // could do this in the previous loop to optimize once finalized
     // FIXME: this the finds the longest match starting at each idx
@@ -119,14 +128,6 @@ export function markMatches(src: TokenTree[],
                     fflMarker("endStyle", style, instanceIdx.toString())
                 );
             });
-        }
-    }
-
-    for (var idx = 0; idx < source.length; idx++) {
-        let tok = source[idx];
-        if (Array.isArray(tok)) {
-            (source as any[])[idx] =
-                markMatches(tok, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts)
         }
     }
 
