@@ -158,29 +158,23 @@ ${(0, exports.toSelectorStrings)(block.selectorGroups, scopeKey).join(', ')} {
             k = '--ffl-label';
             v = `${(_a = v.renderType) !== null && _a !== void 0 ? _a : ''}("${(_b = v.value) !== null && _b !== void 0 ? _b : ''}")`;
             break;
+        case 'border':
         case 'label-position':
-            k = '--ffl-label-position';
-            break;
         case 'label-marker':
-            k = '--ffl-label-marker';
-            break;
         case 'label-marker-offset-x':
-            k = '--ffl-label-marker-offset-x';
-            break;
         case 'label-marker-offset-y':
-            k = '--ffl-label-marker-offset-y';
-            break;
         case 'background-color':
-            k = '--ffl-background-color';
+            k = '--ffl-' + k;
             break;
     }
-    return `${k}: ${v};`;
+    return `  ${k}: ${v};`;
 }).join('\n')}
 }`).join('\n')} </style>`);
 exports.INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
 function transformKaTeXHTML(root, katexHtmlMain, classesState) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+    var _m, _o;
     let invocId;
     if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
         classesState !== null && classesState !== void 0 ? classesState : (classesState = []);
@@ -200,7 +194,8 @@ function transformKaTeXHTML(root, katexHtmlMain, classesState) {
                         let style = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
                         ((_d = root.children) !== null && _d !== void 0 ? _d : (root.children = [])).push(toCSS(style, (_f = (_e = root === null || root === void 0 ? void 0 : root.ffl) === null || _e === void 0 ? void 0 : _e.invocId) !== null && _f !== void 0 ? _f : 'global'));
                         ((_g = root.ffl) !== null && _g !== void 0 ? _g : (root.ffl = {})).labels = [];
-                        root.ffl.backgroundColors = [];
+                        (_h = (_m = root.ffl).backgroundColors) !== null && _h !== void 0 ? _h : (_m.backgroundColors = []);
+                        (_j = (_o = root.ffl).borders) !== null && _j !== void 0 ? _j : (_o.borders = []);
                         style.forEach(block => {
                             var _a, _b;
                             let label = block.properties['label'];
@@ -231,6 +226,13 @@ function transformKaTeXHTML(root, katexHtmlMain, classesState) {
                                     backgroundColor: backgroundColor
                                 });
                             }
+                            let border = block.properties['border'];
+                            if (border) {
+                                root.ffl.borders.push({
+                                    selectorInfo: block.selectorGroups,
+                                    border: border
+                                });
+                            }
                         });
                         break;
                     case "startStyle":
@@ -252,10 +254,10 @@ function transformKaTeXHTML(root, katexHtmlMain, classesState) {
             }
         }
         if (classesState.length > 0) {
-            ((_h = katexHtmlMain.classes) !== null && _h !== void 0 ? _h : (katexHtmlMain.classes = [])).push(...new Set(classesState.map(c => c[0])));
+            ((_k = katexHtmlMain.classes) !== null && _k !== void 0 ? _k : (katexHtmlMain.classes = [])).push(...new Set(classesState.map(c => c[0])));
             if (['mord', 'mbin', 'vlist', 'mspace', 'mopen', 'mclose', 'mpunct', 'mrel', 'mop']
                 .some(cls => { var _a; return (_a = katexHtmlMain.classes) === null || _a === void 0 ? void 0 : _a.includes(cls); })) {
-                ((_j = katexHtmlMain.classes) !== null && _j !== void 0 ? _j : (katexHtmlMain.classes = [])).push('visible');
+                ((_l = katexHtmlMain.classes) !== null && _l !== void 0 ? _l : (katexHtmlMain.classes = [])).push('visible');
             }
             if (katexHtmlMain.setAttribute) {
                 katexHtmlMain.setAttribute(exports.INSTANCE_DATA_ATTR, JSON.stringify(classesState));
@@ -300,8 +302,10 @@ function renderToHTMLTree(ffl, expression, options) {
     htmlTree.style.display = 'inline-block';
     return htmlTree;
 }
-function drawOverlays(root, scopeKey, labels, backgroundInfo, options) {
+function drawOverlays(root, scopeKey, labels, backgroundInfo, borderInfo, options) {
     if (!(0, common_1.isServer)()) {
+        if (borderInfo)
+            (0, overlay_1.drawBorders)(borderInfo, root, scopeKey);
         if (backgroundInfo)
             (0, overlay_1.drawBackground)(backgroundInfo, root, scopeKey);
         if (labels && (options === null || options === void 0 ? void 0 : options.displayMode))
@@ -314,21 +318,21 @@ function drawOverlays(root, scopeKey, labels, backgroundInfo, options) {
  */
 class ffl {
     static render(latex, ffl, baseNode, options) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         let htmlTree = renderToHTMLTree(ffl, latex, options);
         let htmlNode = htmlTree.toNode();
-        drawOverlays(htmlNode, (_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.invocId, (_b = htmlTree.ffl) === null || _b === void 0 ? void 0 : _b.labels, (_c = htmlTree.ffl) === null || _c === void 0 ? void 0 : _c.backgroundColors, options);
+        drawOverlays(htmlNode, (_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.invocId, (_b = htmlTree.ffl) === null || _b === void 0 ? void 0 : _b.labels, (_c = htmlTree.ffl) === null || _c === void 0 ? void 0 : _c.backgroundColors, (_d = htmlTree.ffl) === null || _d === void 0 ? void 0 : _d.borders, options);
         baseNode.textContent = "";
         baseNode.appendChild(htmlNode);
     }
     static renderToString(latex, ffl, options) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         let htmlTree = renderToHTMLTree(ffl, latex, options);
         if (!(0, common_1.isServer)()) {
             let htmlNode;
             try {
                 htmlNode = (0, dom_1.toHTMLElement)(htmlTree.toMarkup());
-                drawOverlays(htmlNode, (_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.invocId, (_b = htmlTree.ffl) === null || _b === void 0 ? void 0 : _b.labels, (_c = htmlTree.ffl) === null || _c === void 0 ? void 0 : _c.backgroundColors, options);
+                drawOverlays(htmlNode, (_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.invocId, (_b = htmlTree.ffl) === null || _b === void 0 ? void 0 : _b.labels, (_c = htmlTree.ffl) === null || _c === void 0 ? void 0 : _c.backgroundColors, (_d = htmlTree.ffl) === null || _d === void 0 ? void 0 : _d.borders, options);
                 var htmlStr = htmlNode.outerHTML;
             }
             finally {

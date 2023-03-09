@@ -262,9 +262,7 @@ function groupByInstance(elements: Element[], classes: string[]): Element[][] {
 }
 
 function isVisible(element: Element): boolean {
-    return true;
-    // return element.tagName === 'svg' || element.nodeType === Node.TEXT_NODE
-    //     || [...element.children].some(e => isVisible(e));
+    return element.textContent ? true : false;
 }
 
 export type BackgroundInfo = { selectorInfo: SelectorInfo[], backgroundColor: any }[];
@@ -309,6 +307,76 @@ export function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement
             }).forEach(bgRect => overlay.appendChild(bgRect))
         );
         root.prepend(overlay);
+    } finally {
+        resetVisibility(root, visibility);
+    }
+}
+
+export type BorderInfo = { selectorInfo: SelectorInfo[], border: any }[];
+export function drawBorders(backgroundInfo: BorderInfo, root: HTMLElement, scopeKey: string) {
+    // need to make sure element is rendered to find the bounding box
+    let visibility = setVisible(root);
+    try {
+        let rootBoundingBox = new BoundingBox(root.getBoundingClientRect());
+        var overlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        Object.assign(overlay.style, {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: rootBoundingBox.width,
+            height: rootBoundingBox.height
+        });
+        overlay.setAttribute('viewBox', `${0} ${0}
+            ${rootBoundingBox.width} ${rootBoundingBox.height}`);
+
+        root.prepend(overlay);
+
+        root.style.position = 'relative';
+        backgroundInfo.flatMap(({ selectorInfo, border }) =>
+            toSelectorStrings(selectorInfo, scopeKey).map((ss, idx) => ({
+                selector: ss,
+                classes: selectorInfo[idx].selectors.map(s => s.class),
+                border
+            }))
+        ).forEach(({ selector, classes, border }) =>
+            groupByInstance(
+                [...root.querySelectorAll(selector).values()].filter(isVisible), classes
+            ).map(group => {
+                var foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+                foreignObject.setAttribute('xmlns', "http://www.w3.org/1999/xhtml");
+                var borderRect = document.createElement('div');
+                borderRect.innerHTML = ""
+
+                let bgRectDim = BoundingBox.of(
+                    ...group.map(node => new BoundingBox(node.getBoundingClientRect()))
+                )!.relativeTo(rootBoundingBox);
+
+                borderRect.setAttribute('style', `
+                    border: ${border};
+                    left: 1px;
+                    top: 1px;
+                    position: relative;
+                    width: ${bgRectDim.width}px;
+                    height: ${bgRectDim.height}px;
+                `)
+
+                foreignObject.setAttribute('x', `${bgRectDim.left - 1}`);
+                foreignObject.setAttribute('y', `${bgRectDim.top - 1}`);
+
+                borderRect.setAttribute('width', `${bgRectDim.width}`);
+                borderRect.setAttribute('height', `${bgRectDim.height}`);
+
+                foreignObject.appendChild(borderRect);
+
+                overlay.appendChild(foreignObject)
+
+                var rectB = borderRect.getBoundingClientRect();
+                foreignObject.setAttribute('width', `${rectB.width + 2}`);
+                foreignObject.setAttribute('height', `${rectB.height + 2}`);
+
+                return foreignObject;
+            })
+        );
     } finally {
         resetVisibility(root, visibility);
     }

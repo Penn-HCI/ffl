@@ -8,7 +8,7 @@ import {
   markClasses, flatten, markMatches, markConstants,
   fflMarker, fflPrefix, getFFLMarker, markDoubleGroups
 } from './language/styleMarkers';
-import { BackgroundInfo, drawBackground, drawLabels, LabelInfo } from './render/overlay';
+import { BackgroundInfo, BorderInfo, drawBackground, drawBorders, drawLabels, LabelInfo } from './render/overlay';
 import { toHTMLElement, toKaTeXVirtualNode } from './utils/dom';
 
 function __tryTokenize(selector: string, options: KatexOptions): string[] {
@@ -158,23 +158,16 @@ ${toSelectorStrings(block.selectorGroups, scopeKey).join(', ')} {
         k = '--ffl-label';
         v = `${v.renderType ?? ''}("${v.value ?? ''}")`;
         break;
+      case 'border':
       case 'label-position':
-        k = '--ffl-label-position';
-        break;
       case 'label-marker':
-        k = '--ffl-label-marker';
-        break;
       case 'label-marker-offset-x':
-        k = '--ffl-label-marker-offset-x';
-        break;
       case 'label-marker-offset-y':
-        k = '--ffl-label-marker-offset-y';
-        break;
       case 'background-color':
-        k = '--ffl-background-color';
+        k = '--ffl-' + k;
         break;
     }
-    return `${k}: ${v};`;
+    return `  ${k}: ${v};`;
   }).join('\n')
     }
 }`).join('\n')
@@ -205,7 +198,8 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any,
             let style: any[] = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
             (root.children ??= []).push(toCSS(style, root?.ffl?.invocId ?? 'global'));
             (root.ffl ??= {}).labels = [];
-            root.ffl.backgroundColors = [];
+            root.ffl.backgroundColors ??= [];
+            root.ffl.borders ??= [];
             style.forEach(block => {
               let label = block.properties['label'];
               let labelPosition = block.properties['label-position'];
@@ -234,6 +228,13 @@ function transformKaTeXHTML(root: any, katexHtmlMain: any,
                 root.ffl.backgroundColors.push({
                   selectorInfo: block.selectorGroups,
                   backgroundColor: backgroundColor
+                });
+              }
+              let border = block.properties['border'];
+              if (border) {
+                root.ffl.borders.push({
+                  selectorInfo: block.selectorGroups,
+                  border: border
                 });
               }
             });
@@ -302,8 +303,10 @@ function renderToHTMLTree(ffl: string, expression: string, options?: KatexOption
 }
 
 function drawOverlays(root: HTMLElement, scopeKey: string,
-  labels?: LabelInfo, backgroundInfo?: BackgroundInfo, options?: KatexOptions) {
+  labels?: LabelInfo, backgroundInfo?: BackgroundInfo, borderInfo?: BorderInfo,
+  options?: KatexOptions) {
   if (!isServer()) {
+    if (borderInfo) drawBorders(borderInfo, root, scopeKey);
     if (backgroundInfo) drawBackground(backgroundInfo, root, scopeKey);
     if (labels && options?.displayMode) drawLabels(labels, root, scopeKey);
   }
@@ -317,7 +320,7 @@ class ffl {
   static render(latex: string, ffl: string, baseNode: HTMLElement, options?: KatexOptions): void {
     let htmlTree = renderToHTMLTree(ffl, latex, options);
     let htmlNode = htmlTree.toNode();
-    drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
+    drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, htmlTree.ffl?.borders, options);
     baseNode.textContent = "";
     baseNode.appendChild(htmlNode);
   }
@@ -328,7 +331,7 @@ class ffl {
       let htmlNode;
       try {
         htmlNode = toHTMLElement(htmlTree.toMarkup());
-        drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, options);
+        drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, htmlTree.ffl?.borders, options);
         var htmlStr = htmlNode.outerHTML;
       } finally {
         if (htmlNode) htmlNode.remove();

@@ -15,4 +15,9 @@ export declare type BackgroundInfo = {
     backgroundColor: any;
 }[];
 export declare function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement, scopeKey: string): void;
+export declare type BorderInfo = {
+    selectorInfo: SelectorInfo[];
+    border: any;
+}[];
+export declare function drawBorders(backgroundInfo: BorderInfo, root: HTMLElement, scopeKey: string): void;
 //# sourceMappingURL=overlay.d.ts.map
