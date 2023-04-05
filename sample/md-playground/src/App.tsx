@@ -10,15 +10,12 @@ declare function require(path: string): any;
 var fflPlugin = require('markdown-it-ffl');
 
 function App() {
-  const [mdSrc, setMdSrc] = useState(`###### Haneen Mohammed, Ziyun Wei, Eugene Wu, and Ravi Netravali. 2020. Continuous prefetch for interactive data applications. Proc. VLDB Endow. 13, 12 (August 2020), 2297–2311. https://doi.org/10.14778/3407790.3407826
+  const [mdSrc, setMdSrc] = useState(`###### Fred Hohman, Andrew Head, Rich Caruana, Robert DeLine, and Steven M. Drucker. 2019. Gamut: A Design Probe to Understand How Data Scientists Understand Machine Learning Models. In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (Glasgow, Scotland Uk) (CHI ’19). Association for Computing Machinery, New York, NY, USA, 1–13. https://doi.org/10.1145/3290605.3300809
 
-**Predictor decomposition.** Applications specify the predictor $P^t$ as <span class="server">server</span> and <span class="client">client</span> components:
-$$ P^t(q|\\Delta, e_t) = P^t_s(q|\\Delta, s_t) P^t_c(st|\\Delta, e_t) $$
-The client component <span class="client">$P^t_c$</span> collects user interaction events and requests $e_t$ and translates this information into a byte
-array that represents the predictor state $s_t$. $s_t$ may be the most recent request(s), model parameters, the most recent
-user events, or simply the predicted probabilities themselves. The server uses $s_t$ as input to <span class="server">$P^t_s$</span> in order to return future
-request probabilities for the Khameleon scheduler’s joint optimization between prefetching and response tuning.
-`);
+  Consider a dataset $D = \{(x_i ,y_i)\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\cdots , x_{iM} )$ is a <span class="feat">feature vector</span> with $M$ features, and $y_i$ is the <span class="target">target</span>, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
+  $$ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + · · · + \beta_M x_M $$
+  This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in <span class="slope">slope terms</span> $\beta_1$, $\beta_2$, . . . , $\beta_M$.
+  `);
   const [fflSrc, setFflSrc] = useState(``);
   const [vecMode, setVecMode] = useState('arrow');
   var md = MarkdownIt({
@@ -63,7 +60,7 @@ request probabilities for the Khameleon scheduler’s joint optimization between
               </Select>
             </div> */}
             <textarea
-              style={{ flex: 3, resize: 'none', overflow: 'auto' }}
+              style={{ flex: 5, resize: 'none', overflow: 'auto' }}
               value={fflSrc} onChange={(e) => setFflSrc(e.target.value)}
             />
             {errMsg &&

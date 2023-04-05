@@ -51,7 +51,9 @@ descendantGroup = global:$('*'?) __ ds:descendantGroup_ {
 descendantGroup_ = s:selector { return [s] }
     / "intersect" ("ion")? '(' __ ss:(selector __ ',' __)+ sse:selector ')' __ {
         return [...ss.map((s : any) => s[0]), sse];
-    } // >=1
+    } / __ ss:(selector __)+ sse:selector __ {
+        return [...ss.map((s : any) => s[0]), sse];
+    }
 
 selector = s:(clazz / literal) ps:pseudoSelector* {
     return {...s, pseudoSelectors : ps }
