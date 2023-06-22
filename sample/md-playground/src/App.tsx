@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import './App.css';
 import 'github-markdown-css/github-markdown.css';
-import { Card, Container, Stack } from '@mui/material';
+import { Card, Chip, Container, Divider, Grid, Stack, Typography } from '@mui/material';
 import MarkdownIt from 'markdown-it';
 import * as ffl from 'ffl';
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
 import { GrammarError } from 'peggy';
-import { Typography } from '@mui/joy';
+import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
+import 'prismjs/themes/prism.css';
+import { start } from 'repl';
 declare function require(path: string): any;
 var fflPlugin = require('markdown-it-ffl');
 
 function App() {
-  const [mdSrc, setMdSrc] = useState(`###### Fred Hohman, Andrew Head, Rich Caruana, Robert DeLine, and Steven M. Drucker. 2019. Gamut: A Design Probe to Understand How Data Scientists Understand Machine Learning Models. In Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems (Glasgow, Scotland Uk) (CHI ’19). Association for Computing Machinery, New York, NY, USA, 1–13. https://doi.org/10.1145/3290605.3300809
+  const [mdSrc, setMdSrc] = useState(`Consider a dataset $D = \\{(x_i ,y_i)\\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\\cdots , x_{iM} )$ is a <span class="feat">feature vector</span> with $M$ features, and $y_i$ is the <span class="target">target</span>, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
+  
+  $$ y = \\beta_0 + \\beta_1 x_1 + \\beta_2 x_2 + \\dots + \\beta_M x_M $$
 
-  Consider a dataset $D = \{(x_i ,y_i)\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\cdots , x_{iM} )$ is a <span class="feat">feature vector</span> with $M$ features, and $y_i$ is the <span class="target">target</span>, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
-  $$ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + · · · + \beta_M x_M $$
-  This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in <span class="slope">slope terms</span> $\beta_1$, $\beta_2$, . . . , $\beta_M$.
+  This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in <span class="slope">slope terms</span> $\\beta_1$, $\\beta_2$, . . . , $\\beta_M$.
   `);
   const [fflSrc, setFflSrc] = useState(``);
   const [vecMode, setVecMode] = useState('arrow');
@@ -29,10 +33,17 @@ function App() {
     }
   });
   var errMsg: string | undefined, render = React.useRef('');
+  var parseTime, renderTime;
   try {
+    // const parseStart = performance.now();
     ffl.default.parseFFL(fflSrc);
+    // const parseEnd = performance.now();
+    // parseTime = parseEnd - parseStart;
     errMsg = undefined;
+    // const renderStart = performance.now();
     render.current = md.render(mdSrc);
+    // const renderEnd = performance.now();
+    // renderTime = renderEnd - renderStart;
   } catch (err) {
     let gErr = err as GrammarError;
     errMsg = `${gErr.location?.start.line}:${gErr.location?.start.column}:${gErr.message}`;
@@ -44,33 +55,50 @@ function App() {
           spacing={2} direction='row'
           alignItems='stretch' justifyContent='space-around'
           sx={{ height: '100%', width: '100%' }}>
-          <Stack spacing={2} sx={{ flex: 1 }}>
-            <div style={{ textAlign: 'start', marginBottom: '-8pt' }}>Markdown</div>
-            <textarea
-              style={{ flex: 4, resize: 'none', overflow: 'auto' }}
-              value={mdSrc} onChange={(e) => setMdSrc(e.target.value)}
-            />
-            <div style={{ textAlign: 'start', marginTop: '8pt', marginBottom: '-8pt' }}>FFL</div>
-            {/* <div style={{ display: 'flex' }}>
-              <Select label='Vector Notation'
-                name="vec" id="vec" size='small' sx={{ textAlign: 'left', flex: 1 }}
-                value={vecMode} onChange={(e) => setVecMode(e.target.value)}>
-                <MenuItem value="arrow">Arrow (<span dangerouslySetInnerHTML={{ __html: md.renderInline('$\\vec{v}$') }} />)</MenuItem>
-                <MenuItem value="bold">Bold (<span dangerouslySetInnerHTML={{ __html: md.renderInline('$\\boldsymbol{v}$') }} />)</MenuItem>
-              </Select>
-            </div> */}
-            <textarea
-              style={{ flex: 5, resize: 'none', overflow: 'auto' }}
-              value={fflSrc} onChange={(e) => setFflSrc(e.target.value)}
-            />
-            {errMsg &&
-              <Typography textColor="danger" sx={{ marginTop: '-4pt' }}>{errMsg}</Typography>}
+          <Divider orientation='vertical' />
+          <Stack spacing={2} sx={{ flex: 3, textAlign: 'start', display: 'flex' }}>
+            <Typography variant='h2' align='left' fontSize={24} marginTop="12pt">
+              Markdown Document
+            </Typography>
+            <div style={{ flex: 8 }} dangerouslySetInnerHTML={{ __html: render.current }} />
+            {/* </Card> */}
+            <Divider component="div" style={{ margin: '2pt' }} />
+            {/* <Card sx={{ flex: 6, textAlign: 'start', overflow: 'clip', padding: '12pt', justifyContent: 'space-evenly', alignItems: 'center' }}
+              variant='outlined' className='markdown-body'> */}
+            <Editor
+              value={mdSrc}
+              onValueChange={setMdSrc}
+              highlight={mdSrc => Prism.highlight(mdSrc, Prism.languages['html'], 'html')}
+              style={{
+                flex: 6, fontSize: 12,
+                fontFamily: '"Fira code", "Fira Mono", monospace',
+              }}
+            /><Divider component="div" style={{ marginBottom: '-4pt' }} />
+            <Typography align='justify'
+              variant="inherit" display="inline-block" fontSize={10}>
+              Initial excerpt adapted from <span style={{ fontStyle: 'italic' }}>
+                Hohman et al., Gamut, CHI '19
+              </span>
+            </Typography>
+
           </Stack>
-          <Card sx={{ flex: 1, textAlign: 'start', overflow: 'auto', padding: '16pt' }}
-            variant='outlined' className='markdown-body'>
-            <div dangerouslySetInnerHTML={{ __html: render.current }} />
-          </Card>
+          <Divider orientation='vertical' />
+          <Stack spacing={2} sx={{ flex: 2 }}>
+            <Typography variant='h2' align='left' fontSize={24} marginTop="12pt">FFL</Typography>
+            <Editor
+              value={fflSrc}
+              onValueChange={setFflSrc}
+              highlight={fflSrc => Prism.highlight(fflSrc, Prism.languages['css'], 'css')}
+              style={{
+                flex: 1, fontSize: 16,
+                fontFamily: '"Fira code", "Fira Mono", monospace',
+              }} insertSpaces
+            />
+            <Typography variant='caption' align='left' >{errMsg}</Typography>
+            {/* <Chip icon={<TimerOutlinedIcon />} size='small' label={`Parse: ${parseTime} ms / Render: ${renderTime} ms`} variant="outlined" /> */}
+          </Stack>
         </Stack>
+
       </Container>
     </div>
   );
