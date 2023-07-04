@@ -31,13 +31,13 @@
   "files": [ "dist" ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wu000168/ffl.git"
+    "url": "git+https://github.com/Penn-HCI/ffl.git"
   },
   "author": "",
   "bugs": {
-    "url": "https://github.com/wu000168/ffl/issues"
+    "url": "https://github.com/Penn-HCI/ffl/issues"
   },
-  "homepage": "https://github.com/wu000168/ffl#readme",
+  "homepage": "https://github.com/Penn-HCI/ffl#readme",
   "description": "",
   "optionalDependencies": {
     "jsdom-jscore-rn": "^0.1.8",

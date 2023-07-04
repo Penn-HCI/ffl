@@ -7,6 +7,7 @@ The documentation is currently limited, but [`doc/cheatsheet.md`](doc/cheatsheet
 #### How to Run
 
 ##### Quick Demo
+We periodically update the demo on [https://penn-hci.github.io/ffl/](https://penn-hci.github.io/ffl/). To run this locally,
 1. `npm install` in this directory
 2. `cd sample/md-playground` into the main demo environment with markdown integration
 3. `npm install` && `npm run start`
