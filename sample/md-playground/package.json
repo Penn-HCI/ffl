@@ -2,7 +2,7 @@
   "name": "md-playground",
   "version": "0.1.0",
   "private": false,
-  "homepage": "https://Penn-HCI.github.io/ffl",
+  "homepage": "https://Penn-HCI.github.io/ffl/demo",
   "dependencies": {
     "@emotion/react": "^11.10.4",
     "@emotion/styled": "^11.10.4",
@@ -33,7 +33,7 @@
   },
   "scripts": {
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build -r https://github.com/Penn-HCI/ffl.git -b gh-pages",
+    "deploy": "gh-pages -d build -e demo -r https://github.com/Penn-HCI/ffl.git -b gh-pages",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
