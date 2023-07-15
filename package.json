@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "bootstrap": "^5.3.0",
+    "ffl": "github:Penn-HCI/ffl"
+  },
+  "name": "ffl-site",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": ""
+}

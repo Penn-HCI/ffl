@@ -1,1 +1,110 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><link rel="icon" href="/ffl/favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#000000"/><meta name="description" content="Web site created using create-react-app"/><link rel="apple-touch-icon" href="/ffl/logo192.png"/><link rel="manifest" href="/ffl/manifest.json"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.2/dist/katex.min.css" integrity="sha384-bYdxxUwYipFNohQlHt0bjN/LCpueqWz13HufFEV1SUatKs1cm4L6fFgCi1jT643X" crossorigin="anonymous"><title>FFL in Markdown</title><script defer="defer" src="/ffl/static/js/main.76f0e06f.js"></script><link href="/ffl/static/css/main.0d671cb7.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>FFL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Zhiyuan Wu, Jiening Li, Kevin Ma, Hita Kambhamettu, Andrew Head">
+    <meta name="description" content="A Language and Live Runtime for Styling and Labeling Typeset Math Formulas">
+    <link rel="canonical" href="https://penn-hci.github.io/ffl/">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+        integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1114.0" data-gr-ext-installed="">
+    <div class="container-sm p-4 py-5">
+        <header class="row align-items-center pb-3 mb-5 border-bottom">
+            <a href="/" class="align-items-center text-body-emphasis text-decoration-none">
+                <span class="katex" style="padding: 8pt; margin-left: 4pt; margin-right: 4pt; font-size: x-large;">
+                    <span class="katex-html" aria-hidden="true"><span class="base"><span class="strut"
+                                style="height: 0.8988em; vertical-align: -0.2155em;"></span><span
+                                class="mord text"><span class="mord text"><span class="mord textrm">F</span><span
+                                        class="mspace" style="margin-right: -0.1667em;"></span><span
+                                        class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist"
+                                                style="height: 0.4678em;"><span class="" style="top: -2.7845em;"><span
+                                                        class="pstrut" style="height: 3em;"></span><span
+                                                        class="mord"><span
+                                                            class="mord textrm">F</span></span></span></span><span
+                                                class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist"
+                                                style="height: 0.2155em;"><span
+                                                    class=""></span></span></span></span><span class="mspace"
+                                        style="margin-right: -0.125em;"></span><span
+                                        class="mord textrm">L</span></span></span></span></span></span>
+                <span class="fs-4">A Language and Live Runtime for Styling and Labeling Typeset Math Formulas</span>
+            </a>
+        </header>
+        <main class="row">
+            <h2 class="text-body-emphasis">Formula Formatting Language</h2>
+            <div class="row justify-content-between">
+                <p class="fs-5 col-8 text-justify">As interest grows for learning math concepts in fields like data
+                    science and machine learning, it is becoming more important to help broad audiences engage with
+                    math notation.
+                    <br /> <br />
+                    In this paper, we explore how authoring tools can help authors better style and
+                    label formulas to support their readability. We introduce a language for augmenting formulas
+                    called FFL, or "Formula Formatting Language," which aims to lower the threshold to stylize and
+                    diagram formulas. The language is designed to be concise, writable, readable, and integrable
+                    into web-based document authoring environments. It was developed with an accompanying runtime
+                    that supports live application of augmentations to formulas.
+                    <br /> <br />
+                    Our lab study shows that FFL is improves speed and ease of editing augmentation markup, and the
+                    readability of augmentation markup compared to baseline LaTeX tools.
+                </p>
+                <div class="col-3 d-flex flex-column">
+                    <ul class="list-unstyled ps-0">
+                        <li>
+                            <a class="icon-link mb-1" href="https://github.com/penn-hci/ffl" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                                </svg>
+                                Source Code
+                            </a>
+                        </li>
+                        <li>
+                            <a class="icon-link mb-1" href="/ffl/demo" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                                </svg>
+                                Markdown Demo
+                            </a>
+                        </li>
+                        <li>
+                            <a class="icon-link disabled mb-1" href="https://doi.org/10.1145/3586183.3606731" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                                </svg>
+                                Paper (PDF/HTML)
+                            </a>
+                        </li>
+                        <li>
+                            <a class="icon-link disabled mb-1" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right-circle" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                                </svg>
+                                Usability Study Materials
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+        <footer class="py-3 my-4 ">
+            <hr>
+            <p class="text-center text-body-secondary">
+                Zhiyuan Wu, Jiening Li, Kevin Ma, Hita Kambhamettu, Andrew Head
+            </p>
+        </footer>
+    </div>
+</body>
+
+</html>
