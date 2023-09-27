@@ -39,10 +39,17 @@ const dom_1 = require("./utils/dom");
 function __tryTokenize(selector, options) {
     let toks = [];
     try {
-        katex_1.default.renderToString(`\\fflSelectorTokenizer{${selector}}`, Object.assign(Object.assign({}, options), { throwOnError: true, macros: Object.assign(Object.assign({}, options.macros), { "\\fflSelectorTokenizer": (context) => {
+        katex_1.default.renderToString(`\\fflSelectorTokenizer{${selector}}`, {
+            ...options,
+            throwOnError: true,
+            macros: {
+                ...options.macros,
+                "\\fflSelectorTokenizer": (context) => {
                     toks = context.consumeArg().tokens;
                     throw 'BREAK';
-                } }) }));
+                }
+            }
+        });
     }
     catch (err) {
         if (err !== 'BREAK')
@@ -51,8 +58,7 @@ function __tryTokenize(selector, options) {
     return toks.reverse();
 }
 function overrideOptions(options, fflParse) {
-    var _a, _b;
-    options !== null && options !== void 0 ? options : (options = { macros: {} });
+    options ??= { macros: {} };
     let fflLitSelectorsTokenized = [];
     for (const b of fflParse) {
         for (const ss of b.selectors)
@@ -64,8 +70,12 @@ function overrideOptions(options, fflParse) {
     }
     var isOpenGroup = (tok) => tok == '{';
     var isCloseGroup = (tok) => tok == '}';
-    let sectionKey = (_b = (_a = options.ffl) === null || _a === void 0 ? void 0 : _a.sectionKey) !== null && _b !== void 0 ? _b : (0, uuid_1.v4)();
-    return Object.assign(Object.assign({}, options), { throwOnError: false, macros: Object.assign(Object.assign({}, options.macros), { "\\ffl": (context) => {
+    let sectionKey = options.ffl?.sectionKey ?? (0, uuid_1.v4)();
+    return {
+        ...options,
+        throwOnError: false,
+        macros: {
+            ...options.macros, "\\ffl": (context) => {
                 // TODO: post-expansion matching
                 var latex = context.consumeArg().tokens;
                 var fflLitSelectors = [...fflLitSelectorsTokenized];
@@ -131,12 +141,15 @@ function overrideOptions(options, fflParse) {
                 }));
                 return `{${(0, styleMarkers_1.fflMarker)("startInvoc", sectionKey)}${(0, styleMarkers_1.fflMarker)("style", JSON.stringify(style))}
           {${latexWithMarkers.join('')}}${(0, styleMarkers_1.fflMarker)("endInvoc", sectionKey)}}`;
-            }, '\\fflMarker': (context) => {
+            },
+            '\\fflMarker': (context) => {
                 var arg = context.consumeArg();
                 var tok = arg.start.range(arg.end, `${styleMarkers_1.fflPrefix}${arg.tokens.reverse().map((tok) => tok.text).join('').trim()}`);
                 tok.noexpand = true;
                 return { numArgs: 0, tokens: [tok], unexpandable: true };
-            } }) });
+            }
+        }
+    };
 }
 const toSelectorStrings = (selectorGroups, scopeKey) => selectorGroups.map(({ isGlobal, selectors }) => `${isGlobal ? "*" : `.ffl-${scopeKey} `}${selectors.map((selector) => `.${selector.class}${selector.pseudoSelectors.map((ps) => {
     switch (ps.class) {
@@ -152,11 +165,10 @@ exports.toSelectorStrings = toSelectorStrings;
 const toCSS = (translatedStyles, scopeKey) => (0, dom_1.toKaTeXVirtualNode)(`<style> ${translatedStyles.map((block) => `
 ${(0, exports.toSelectorStrings)(block.selectorGroups, scopeKey).join(', ')} {
   ${Object.entries(block.properties).map(([k, v]) => {
-    var _a, _b;
     switch (k) {
         case 'label':
             k = '--ffl-label';
-            v = `${(_a = v.renderType) !== null && _a !== void 0 ? _a : ''}("${(_b = v.value) !== null && _b !== void 0 ? _b : ''}")`;
+            v = `${v.renderType ?? ''}("${v.value ?? ''}")`;
             break;
         case 'border':
         case 'label-position':
@@ -173,38 +185,35 @@ ${(0, exports.toSelectorStrings)(block.selectorGroups, scopeKey).join(', ')} {
 exports.INSTANCE_DATA_ATTR = "data-ffl-class-instances";
 // TODO: figure out how to use the reexported types, maybe use a more detailed .d.ts file instead of reexport
 function transformKaTeXHTML(root, katexHtmlMain, classesState) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-    var _m, _o;
     let invocId;
     if (katexHtmlMain) { // TODO: figure out why there is an empty element at end of input, perhaps due to removal during the loop
-        classesState !== null && classesState !== void 0 ? classesState : (classesState = []);
+        classesState ??= [];
         if (katexHtmlMain.classes && !Array.isArray(katexHtmlMain.classes))
             katexHtmlMain.classes = [katexHtmlMain.classes];
-        for (var i = 0; i < ((_a = katexHtmlMain.children) !== null && _a !== void 0 ? _a : []).length; i++) {
-            var childNode = ((_b = katexHtmlMain.children) !== null && _b !== void 0 ? _b : [])[i], ffl;
+        for (var i = 0; i < (katexHtmlMain.children ?? []).length; i++) {
+            var childNode = (katexHtmlMain.children ?? [])[i], ffl;
             if (ffl = (0, styleMarkers_1.getFFLMarker)(childNode)) {
                 switch (ffl.command) {
                     case "startInvoc":
                         invocId = ffl.arg;
-                        ((_c = root.ffl) !== null && _c !== void 0 ? _c : (root.ffl = {})).invocId = invocId;
+                        (root.ffl ??= {}).invocId = invocId;
                         katexHtmlMain.classes.push(`ffl-${invocId}`);
                         root.classes.push(`ffl-${invocId}`);
                         break;
                     case "style":
                         let style = JSON.parse(ffl.arg.replaceAll('\xA0', '\x20'));
-                        ((_d = root.children) !== null && _d !== void 0 ? _d : (root.children = [])).push(toCSS(style, (_f = (_e = root === null || root === void 0 ? void 0 : root.ffl) === null || _e === void 0 ? void 0 : _e.invocId) !== null && _f !== void 0 ? _f : 'global'));
-                        ((_g = root.ffl) !== null && _g !== void 0 ? _g : (root.ffl = {})).labels = [];
-                        (_h = (_m = root.ffl).backgroundColors) !== null && _h !== void 0 ? _h : (_m.backgroundColors = []);
-                        (_j = (_o = root.ffl).borders) !== null && _j !== void 0 ? _j : (_o.borders = []);
+                        (root.children ??= []).push(toCSS(style, root?.ffl?.invocId ?? 'global'));
+                        (root.ffl ??= {}).labels = [];
+                        root.ffl.backgroundColors ??= [];
+                        root.ffl.borders ??= [];
                         style.forEach(block => {
-                            var _a, _b;
                             let label = block.properties['label'];
                             let labelPosition = block.properties['label-position'];
                             let labelMarker = block.properties['label-marker'];
                             let markerOffsetX = block.properties['label-marker-offset-x'];
                             let markerOffsetY = block.properties['label-marker-offset-y'];
                             const parsePx = (s) => {
-                                let s_ = (s !== null && s !== void 0 ? s : "").trim();
+                                let s_ = (s ?? "").trim();
                                 let f = parseFloat(s_.toLowerCase().endsWith('px')
                                     ? s_.slice(0, s_.length - 2).trimEnd() : s_);
                                 return (f && !isNaN(f)) ? f : 0;
@@ -214,8 +223,8 @@ function transformKaTeXHTML(root, katexHtmlMain, classesState) {
                                     selectorInfo: block.selectorGroups,
                                     label, labelPosition, labelMarker,
                                     markerOffset: {
-                                        x: (_a = parsePx(markerOffsetX)) !== null && _a !== void 0 ? _a : 0,
-                                        y: (_b = parsePx(markerOffsetY)) !== null && _b !== void 0 ? _b : 0
+                                        x: parsePx(markerOffsetX) ?? 0,
+                                        y: parsePx(markerOffsetY) ?? 0
                                     }
                                 });
                             }
@@ -254,10 +263,10 @@ function transformKaTeXHTML(root, katexHtmlMain, classesState) {
             }
         }
         if (classesState.length > 0) {
-            ((_k = katexHtmlMain.classes) !== null && _k !== void 0 ? _k : (katexHtmlMain.classes = [])).push(...new Set(classesState.map(c => c[0])));
+            (katexHtmlMain.classes ??= []).push(...new Set(classesState.map(c => c[0])));
             if (['mord', 'mbin', 'vlist', 'mspace', 'mopen', 'mclose', 'mpunct', 'mrel', 'mop']
-                .some(cls => { var _a; return (_a = katexHtmlMain.classes) === null || _a === void 0 ? void 0 : _a.includes(cls); })) {
-                ((_l = katexHtmlMain.classes) !== null && _l !== void 0 ? _l : (katexHtmlMain.classes = [])).push('visible');
+                .some(cls => katexHtmlMain.classes?.includes(cls))) {
+                (katexHtmlMain.classes ??= []).push('visible');
             }
             if (katexHtmlMain.setAttribute) {
                 katexHtmlMain.setAttribute(exports.INSTANCE_DATA_ATTR, JSON.stringify(classesState));
@@ -278,21 +287,20 @@ function transformKaTeXHTML(root, katexHtmlMain, classesState) {
     return invocId;
 }
 function findKatexHTMLRoot(htmlTree) {
-    var _a;
-    return (_a = htmlTree.children.find((span) => span.classes.includes("katex-html"))) !== null && _a !== void 0 ? _a : htmlTree.children.map(findKatexHTMLRoot).find((e) => e);
+    return htmlTree.children.find((span) => span.classes.includes("katex-html"))
+        ?? htmlTree.children.map(findKatexHTMLRoot).find((e) => e);
 }
 function renderToHTMLTree(ffl, expression, options) {
-    var _a;
-    let __renderToHTMLTree = (_a = window.renderToHTMLTree) !== null && _a !== void 0 ? _a : katex_1.default.__renderToHTMLTree;
+    let __renderToHTMLTree = window.renderToHTMLTree ?? katex_1.default.__renderToHTMLTree;
     try {
-        __renderToHTMLTree(expression, Object.assign(Object.assign({}, options), { throwOnError: true }));
+        __renderToHTMLTree(expression, { ...options, throwOnError: true });
     }
     catch (err) {
-        if (options === null || options === void 0 ? void 0 : options.throwOnError) {
+        if (options?.throwOnError) {
             throw err;
         }
         else {
-            return __renderToHTMLTree(expression, options !== null && options !== void 0 ? options : {});
+            return __renderToHTMLTree(expression, options ?? {});
         }
     }
     var parsedFFL = grammar.parse(ffl, { startRule: "blocks" });
@@ -308,7 +316,7 @@ function drawOverlays(root, scopeKey, labels, backgroundInfo, borderInfo, option
             (0, overlay_1.drawBorders)(borderInfo, root, scopeKey);
         if (backgroundInfo)
             (0, overlay_1.drawBackground)(backgroundInfo, root, scopeKey);
-        if (labels && (options === null || options === void 0 ? void 0 : options.displayMode))
+        if (labels && options?.displayMode)
             (0, overlay_1.drawLabels)(labels, root, scopeKey);
     }
 }
@@ -318,21 +326,19 @@ function drawOverlays(root, scopeKey, labels, backgroundInfo, borderInfo, option
  */
 class ffl {
     static render(latex, ffl, baseNode, options) {
-        var _a, _b, _c, _d;
         let htmlTree = renderToHTMLTree(ffl, latex, options);
         let htmlNode = htmlTree.toNode();
-        drawOverlays(htmlNode, (_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.invocId, (_b = htmlTree.ffl) === null || _b === void 0 ? void 0 : _b.labels, (_c = htmlTree.ffl) === null || _c === void 0 ? void 0 : _c.backgroundColors, (_d = htmlTree.ffl) === null || _d === void 0 ? void 0 : _d.borders, options);
+        drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, htmlTree.ffl?.borders, options);
         baseNode.textContent = "";
         baseNode.appendChild(htmlNode);
     }
     static renderToString(latex, ffl, options) {
-        var _a, _b, _c, _d;
         let htmlTree = renderToHTMLTree(ffl, latex, options);
         if (!(0, common_1.isServer)()) {
             let htmlNode;
             try {
                 htmlNode = (0, dom_1.toHTMLElement)(htmlTree.toMarkup());
-                drawOverlays(htmlNode, (_a = htmlTree.ffl) === null || _a === void 0 ? void 0 : _a.invocId, (_b = htmlTree.ffl) === null || _b === void 0 ? void 0 : _b.labels, (_c = htmlTree.ffl) === null || _c === void 0 ? void 0 : _c.backgroundColors, (_d = htmlTree.ffl) === null || _d === void 0 ? void 0 : _d.borders, options);
+                drawOverlays(htmlNode, htmlTree.ffl?.invocId, htmlTree.ffl?.labels, htmlTree.ffl?.backgroundColors, htmlTree.ffl?.borders, options);
                 var htmlStr = htmlNode.outerHTML;
             }
             finally {

@@ -1,5 +1,5 @@
-import { SelectorInfo } from '../ffl';
-export declare type LabelInfo = {
+import { SelectorInfo } from '../../ffl';
+export type LabelInfo = {
     selectorInfo: SelectorInfo[];
     label: any;
     labelPosition?: "above" | "below" | "auto";
@@ -10,12 +10,12 @@ export declare type LabelInfo = {
     };
 }[];
 export declare function drawLabels(labels: LabelInfo, root: HTMLElement, scopeKey: string): void;
-export declare type BackgroundInfo = {
+export type BackgroundInfo = {
     selectorInfo: SelectorInfo[];
     backgroundColor: any;
 }[];
 export declare function drawBackground(backgroundInfo: BackgroundInfo, root: HTMLElement, scopeKey: string): void;
-export declare type BorderInfo = {
+export type BorderInfo = {
     selectorInfo: SelectorInfo[];
     border: any;
 }[];

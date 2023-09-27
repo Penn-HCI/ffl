@@ -1,11 +1,6 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseAtomics = void 0;
-const katex_1 = require("katex");
-const lodash_1 = __importDefault(require("lodash"));
+import katex from "katex";
+const { ParseError } = katex;
+import _ from "lodash";
 // almost a parsec but we need some special parameterization so it is not actually combinable directly
 function consumeToken(tokens, startIdx) {
     return [tokens[startIdx], startIdx + 1];
@@ -20,7 +15,7 @@ function consumeGroup(tokens, startIdx, isOpenGroup, isCloseGroup) {
             idx = contIdx;
         }
         if (!isCloseGroup(tokens[idx]))
-            throw new katex_1.ParseError("dangling open group", undefined, startIdx);
+            throw new ParseError("dangling open group", undefined, startIdx);
         return [children, idx + 1];
     }
     else {
@@ -32,7 +27,7 @@ function consumeAtomic(tokens, startIdx, isOpenGroup, isCloseGroup) {
     if (!tryConsume)
         [tryConsume, contIdx] = consumeToken(tokens, startIdx);
     if (contIdx == startIdx)
-        throw new katex_1.ParseError("unexpected / internal error", undefined, startIdx);
+        throw new ParseError("unexpected / internal error", undefined, startIdx);
     startIdx = contIdx;
     return [tryConsume, startIdx];
 }
@@ -43,8 +38,7 @@ const cmdArgLens = {
     '\\frac': 2,
 };
 function fixGroups(tokens) {
-    var _a;
-    let _tokens = lodash_1.default.cloneDeep(tokens);
+    let _tokens = _.cloneDeep(tokens);
     if (Array.isArray(_tokens)) {
         var ret = [];
         var tok;
@@ -55,13 +49,13 @@ function fixGroups(tokens) {
             else {
                 let numArgs = cmdArgLens[tok];
                 let expandedArgs = [];
-                for (var j = 0; j < (numArgs !== null && numArgs !== void 0 ? numArgs : 0); j++) {
-                    let arg = (_a = ret.pop()) !== null && _a !== void 0 ? _a : [];
+                for (var j = 0; j < (numArgs ?? 0); j++) {
+                    let arg = ret.pop() ?? [];
                     let isCmd = typeof arg === 'string' && cmdArgLens[arg];
                     if (!Array.isArray(arg))
                         arg = [arg];
                     if (isCmd) {
-                        for (var k = 0; k < (isCmd !== null && isCmd !== void 0 ? isCmd : 0); k++) {
+                        for (var k = 0; k < (isCmd ?? 0); k++) {
                             let arg_ = ret.pop();
                             if (arg_)
                                 arg.push(arg_);
@@ -79,7 +73,7 @@ function fixGroups(tokens) {
     }
 }
 // this assumes token already passes parsing by katex
-function parseAtomics(tokens, isOpenGroup, isCloseGroup) {
+export function parseAtomics(tokens, isOpenGroup, isCloseGroup) {
     let children = [];
     for (var idx = 0; idx < tokens.length;) {
         let [tryConsume, contIdx] = consumeAtomic(tokens, idx, isOpenGroup, isCloseGroup);
@@ -89,5 +83,4 @@ function parseAtomics(tokens, isOpenGroup, isCloseGroup) {
     let tokenTree = fixGroups(children);
     return Array.isArray(tokenTree) ? tokenTree : [tokenTree];
 }
-exports.parseAtomics = parseAtomics;
 //# sourceMappingURL=groupParser.js.map

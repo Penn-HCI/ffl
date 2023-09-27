@@ -1,14 +1,14 @@
 import { TokenTree } from "./groupParser";
 export declare const fflPrefix = "\\ffl@";
 export declare const fflMarkerCmd = "\\fflMarker";
-export declare type Command = "startInvoc" | "endInvoc" | "style" | "startStyle" | "endStyle";
+export type Command = "startInvoc" | "endInvoc" | "style" | "startStyle" | "endStyle";
 export declare function fflMarker(cmd: Command, ...arg: string[]): string;
 export declare function getFFLMarker(node: any): {
     command: Command;
     arg: any;
 } | undefined;
-export declare type IndexedInstance = [style: string, idx: number];
-declare type InstanceCounts = {
+export type IndexedInstance = [style: string, idx: number];
+type InstanceCounts = {
     [style: string]: number;
 };
 export declare function markMatches(src: TokenTree[], matchers: {

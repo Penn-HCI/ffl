@@ -1,23 +1,15 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.flatten = exports.markClasses = exports.markDoubleGroups = exports.markConstants = exports.markMatches = exports.getFFLMarker = exports.fflMarker = exports.fflMarkerCmd = exports.fflPrefix = void 0;
-const lodash_1 = __importDefault(require("lodash"));
-const common_1 = require("../utils/common");
+import _ from "lodash";
+import { isWhitespace } from "../utils/common";
 // TODO: lift out more shared constants
-exports.fflPrefix = "\\ffl@";
-exports.fflMarkerCmd = "\\fflMarker";
-function fflMarker(cmd, ...arg) {
-    return `${exports.fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`;
+export const fflPrefix = "\\ffl@";
+export const fflMarkerCmd = "\\fflMarker";
+export function fflMarker(cmd, ...arg) {
+    return `${fflMarkerCmd}{${cmd}{${arg.join('}{')}}}`;
 }
-exports.fflMarker = fflMarker;
-function getFFLMarker(node) {
-    var _a, _b;
-    if (['mord', 'text'].every((name) => { var _a; return ((_a = node === null || node === void 0 ? void 0 : node.classes) !== null && _a !== void 0 ? _a : []).includes(name); })
-        && ((_b = (_a = node.children[0]) === null || _a === void 0 ? void 0 : _a.text) !== null && _b !== void 0 ? _b : '').startsWith(exports.fflPrefix)) {
-        let ffl = node.children[0].text.replace(new RegExp(`^${exports.fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
+export function getFFLMarker(node) {
+    if (['mord', 'text'].every((name) => (node?.classes ?? []).includes(name))
+        && (node.children[0]?.text ?? '').startsWith(fflPrefix)) {
+        let ffl = node.children[0].text.replace(new RegExp(`^${fflPrefix.replaceAll("\\", "\\\\")}`), "").trim();
         let argIdx = ffl.indexOf("{");
         return {
             command: ffl.slice(0, argIdx),
@@ -30,22 +22,20 @@ function getFFLMarker(node) {
         return undefined;
     }
 }
-exports.getFFLMarker = getFFLMarker;
-function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts) {
-    var _a;
-    var source = lodash_1.default.cloneDeep(src);
+export function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instanceCounts) {
+    var source = _.cloneDeep(src);
     var startStyles = {};
     var endStyles = {};
     let matchTableState = [];
-    instanceCounts !== null && instanceCounts !== void 0 ? instanceCounts : (instanceCounts = {});
+    instanceCounts ??= {};
     function match(selector, target) {
-        if ([target, wildcardSingle, wildcardAny].some(tok => lodash_1.default.isEqual(selector, tok))
-            || lodash_1.default.isEqual(target, escapes[selector]))
+        if ([target, wildcardSingle, wildcardAny].some(tok => _.isEqual(selector, tok))
+            || _.isEqual(target, escapes[selector]))
             return true;
         if (Array.isArray(selector) && Array.isArray(target)) {
             var matchState = [[...selector]]; // clones
             for (var i = 0; i < target.length; i++) {
-                if (!(typeof target[i] === 'string' && (0, common_1.isWhitespace)(target[i]))) {
+                if (!(typeof target[i] === 'string' && isWhitespace(target[i]))) {
                     matchState.push(...matchState.filter(selector => selector[0] === wildcardAny)
                         .map(selector => selector.slice(1)));
                     matchState = [
@@ -61,29 +51,26 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
     }
     for (var idx = 0; idx < source.length; idx++) {
         var tok = source[idx];
-        if (!(typeof tok === 'string' && (0, common_1.isWhitespace)(tok))) {
+        if (!(typeof tok === 'string' && isWhitespace(tok))) {
             matchTableState.push(...matchers, ...matchTableState.filter(matcher => matcher.matcher[0] === wildcardAny)
-                .map(matcher => { return Object.assign(Object.assign({}, matcher), { matcher: matcher.matcher.slice(1) }); }));
+                .map(matcher => { return { ...matcher, matcher: matcher.matcher.slice(1) }; }));
             matchTableState = [
                 ...matchTableState.filter(matcher => match(matcher.matcher[0], tok))
-                    .map(matcher => { return Object.assign(Object.assign({}, matcher), { matcher: matcher.matcher.slice(1) }); }),
+                    .map(matcher => { return { ...matcher, matcher: matcher.matcher.slice(1) }; }),
                 ...matchTableState.filter(matcher => matcher.matcher[0] === wildcardAny),
             ].map(matcher => {
-                var _a;
-                return Object.assign(Object.assign({}, matcher), { startIdx: (_a = matcher.startIdx) !== null && _a !== void 0 ? _a : idx });
+                return { ...matcher, startIdx: matcher.startIdx ?? idx };
             });
             matchTableState.filter(matcher => matcher.matcher.length == 0 && matcher.startIdx !== undefined)
                 .forEach(matcher => {
-                var _a, _b;
-                var _c, _d;
                 if (!(['^', '_'].includes(source[idx + 1])
                     && ['^', '_'].some(t => source.slice(matcher.startIdx, idx + 1).includes(t)))) {
-                    (_a = startStyles[_c = matcher.startIdx]) !== null && _a !== void 0 ? _a : (startStyles[_c] = []);
+                    startStyles[matcher.startIdx] ??= [];
                     startStyles[matcher.startIdx].unshift({
                         end: idx + 1,
                         style: matcher.key
                     });
-                    (_b = endStyles[_d = idx + 1]) !== null && _b !== void 0 ? _b : (endStyles[_d] = []);
+                    endStyles[idx + 1] ??= [];
                     endStyles[idx + 1].push({
                         start: matcher.startIdx,
                         style: matcher.key
@@ -106,11 +93,9 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
     var styles = {};
     var markers = [];
     for (var idx = 0; idx <= source.length; idx++) {
-        ((_a = startStyles[idx]) !== null && _a !== void 0 ? _a : []).forEach(({ style, end }) => {
-            var _a, _b;
-            var _c;
-            (_a = (_c = instanceCounts)[style]) !== null && _a !== void 0 ? _a : (_c[style] = 0);
-            (_b = styles[idx]) !== null && _b !== void 0 ? _b : (styles[idx] = {});
+        (startStyles[idx] ?? []).forEach(({ style, end }) => {
+            instanceCounts[style] ??= 0;
+            styles[idx] ??= {};
             Object.assign(styles[idx], {
                 [style]: { instanceIdx: instanceCounts[style]++ }
             });
@@ -119,9 +104,8 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
         });
         if (styles[idx]) {
             Object.entries(styles[idx]).forEach(([style, { instanceIdx, end }]) => {
-                var _a, _b;
-                ((_a = markers[idx]) !== null && _a !== void 0 ? _a : (markers[idx] = [])).push(fflMarker("startStyle", style, instanceIdx.toString()));
-                ((_b = markers[end]) !== null && _b !== void 0 ? _b : (markers[end] = [])).unshift(fflMarker("endStyle", style, instanceIdx.toString()));
+                (markers[idx] ??= []).push(fflMarker("startStyle", style, instanceIdx.toString()));
+                (markers[end] ??= []).unshift(fflMarker("endStyle", style, instanceIdx.toString()));
             });
         }
     }
@@ -134,11 +118,10 @@ function markMatches(src, matchers, wildcardSingle, wildcardAny, escapes, instan
     }
     return latexWithMarkers;
 }
-exports.markMatches = markMatches;
 // note that this mutates the array
-function markConstants(latex, counter) {
-    var tree = lodash_1.default.clone(latex);
-    counter !== null && counter !== void 0 ? counter : (counter = { count: 0 });
+export function markConstants(latex, counter) {
+    var tree = _.clone(latex);
+    counter ??= { count: 0 };
     if (Array.isArray(tree)) {
         for (var i = 0; i < tree.length; i++) {
             if (Array.isArray(tree[i])) {
@@ -168,14 +151,13 @@ function markConstants(latex, counter) {
     }
     return tree;
 }
-exports.markConstants = markConstants;
-function markDoubleGroups(latex, counter, markRoot) {
+export function markDoubleGroups(latex, counter, markRoot) {
     var tree = latex;
     let ret = tree;
-    if ((markRoot !== null && markRoot !== void 0 ? markRoot : (markRoot = true)))
+    if ((markRoot ??= true))
         tree = Array.isArray(latex) ? [latex] : [[latex]];
     if (Array.isArray(tree)) {
-        counter !== null && counter !== void 0 ? counter : (counter = { count: 0 });
+        counter ??= { count: 0 };
         ret = [];
         let isDoubleGroup = tree.length == 1 && Array.isArray(tree[0]);
         let count = counter.count;
@@ -190,7 +172,6 @@ function markDoubleGroups(latex, counter, markRoot) {
     }
     return ret;
 }
-exports.markDoubleGroups = markDoubleGroups;
 const classes = {
     '^': ['superscript'],
     '_': ['subscript'],
@@ -198,9 +179,7 @@ const classes = {
     '\\frac': ['numerator', 'denominator'],
 };
 function _normalizeAndCountClasses(tokens, instanceCounts) {
-    var _a, _b, _c;
-    var _d;
-    let _tokens = lodash_1.default.clone(tokens);
+    let _tokens = _.clone(tokens);
     if (Array.isArray(_tokens)) {
         var ret = [];
         var tok;
@@ -211,10 +190,10 @@ function _normalizeAndCountClasses(tokens, instanceCounts) {
             else {
                 let cmdClasses = classes[tok];
                 let expandedArgs = [];
-                for (var j = 0; j < ((_a = cmdClasses === null || cmdClasses === void 0 ? void 0 : cmdClasses.length) !== null && _a !== void 0 ? _a : 0); j++) {
-                    let arg = (_b = ret.pop()) !== null && _b !== void 0 ? _b : [];
+                for (var j = 0; j < (cmdClasses?.length ?? 0); j++) {
+                    let arg = ret.pop() ?? [];
                     expandedArgs.push(Array.isArray(arg) ? arg : [arg]);
-                    (_c = instanceCounts[_d = cmdClasses[j]]) !== null && _c !== void 0 ? _c : (instanceCounts[_d] = 0);
+                    instanceCounts[cmdClasses[j]] ??= 0;
                     instanceCounts[cmdClasses[j]]++;
                 }
                 ret.push(...expandedArgs.reverse(), tok);
@@ -227,9 +206,8 @@ function _normalizeAndCountClasses(tokens, instanceCounts) {
     }
 }
 function _markClasses(tokens, instanceCounts) {
-    var _a, _b;
-    let _tokens = lodash_1.default.cloneDeep(tokens);
-    instanceCounts !== null && instanceCounts !== void 0 ? instanceCounts : (instanceCounts = {});
+    let _tokens = _.cloneDeep(tokens);
+    instanceCounts ??= {};
     if (Array.isArray(_tokens)) {
         var ret = [];
         var tok;
@@ -240,8 +218,8 @@ function _markClasses(tokens, instanceCounts) {
             else {
                 let cmdClasses = classes[tok];
                 let expandedArgs = [];
-                for (var j = 0; j < ((_a = cmdClasses === null || cmdClasses === void 0 ? void 0 : cmdClasses.length) !== null && _a !== void 0 ? _a : 0); j++) {
-                    let arg = (_b = ret.pop()) !== null && _b !== void 0 ? _b : [];
+                for (var j = 0; j < (cmdClasses?.length ?? 0); j++) {
+                    let arg = ret.pop() ?? [];
                     if (!Array.isArray(arg))
                         arg = [arg];
                     expandedArgs.push([
@@ -260,13 +238,12 @@ function _markClasses(tokens, instanceCounts) {
     }
 }
 // TODO: can this be done in single pass?
-function markClasses(tokens, instanceCounts) {
-    instanceCounts !== null && instanceCounts !== void 0 ? instanceCounts : (instanceCounts = {});
+export function markClasses(tokens, instanceCounts) {
+    instanceCounts ??= {};
     let normalize = _normalizeAndCountClasses(tokens, instanceCounts);
     return _markClasses(tokens, instanceCounts);
 }
-exports.markClasses = markClasses;
-function flatten(tokens) {
+export function flatten(tokens) {
     if (Array.isArray(tokens)) {
         return ['{', ...tokens.map(flatten), '}'].flat();
     }
@@ -274,5 +251,4 @@ function flatten(tokens) {
         return [tokens];
     }
 }
-exports.flatten = flatten;
 //# sourceMappingURL=styleMarkers.js.map

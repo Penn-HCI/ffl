@@ -1,4 +1,4 @@
-export declare type FFLSelector = {
+export type FFLSelector = {
     type: "literal" | "class";
     str: string;
     pseudoSelectors: {
@@ -6,16 +6,16 @@ export declare type FFLSelector = {
         arg: string;
     }[];
 };
-export declare type FFLIntersectionSelector = FFLSelector | FFLSelector[];
-export declare type FFLDisjointSelectorList = FFLIntersectionSelector[];
-export declare type FFLProperties = {
+export type FFLIntersectionSelector = FFLSelector | FFLSelector[];
+export type FFLDisjointSelectorList = FFLIntersectionSelector[];
+export type FFLProperties = {
     [key: string]: string | string[] | any;
 };
-export declare type FFLStyleBlock = {
+export type FFLStyleBlock = {
     selectors: FFLDisjointSelectorList;
     properties: FFLProperties;
 };
-export declare type FFLStyleSheet = FFLStyleBlock[];
+export type FFLStyleSheet = FFLStyleBlock[];
 export interface IFilePosition {
     offset: number;
     line: number;
@@ -49,7 +49,7 @@ export interface IOtherExpectation {
     type: "other";
     description: string;
 }
-export declare type Expectation = ILiteralExpectation | IClassExpectation | IAnyExpectation | IEndExpectation | IOtherExpectation;
+export type Expectation = ILiteralExpectation | IClassExpectation | IAnyExpectation | IEndExpectation | IOtherExpectation;
 export declare class SyntaxError extends Error {
     static buildMessage(expected: Expectation[], found: string | null): string;
     message: string;
@@ -59,7 +59,7 @@ export declare class SyntaxError extends Error {
     name: string;
     constructor(message: string, expected: Expectation[], found: string | null, location: IFileRange);
     format(sources: {
-        source: string;
+        grammarSource?: string;
         text: string;
     }[]): string;
 }
@@ -69,6 +69,6 @@ export interface IParseOptions {
     tracer?: any;
     [key: string]: any;
 }
-export declare type ParseFunction = (input: string, options?: IParseOptions) => any;
+export type ParseFunction = (input: string, options?: IParseOptions) => any;
 export declare const parse: ParseFunction;
 //# sourceMappingURL=grammar.d.ts.map

@@ -19,12 +19,7 @@ export function toKaTeXVirtualNode(html: string) : any {
 export function toHTMLElement(innerHTML: string): HTMLElement {
   var document: any;
   if (isServer()) {
-    try {
-      let { jsdom } = require('jsdom-jscore-rn');
-      document = jsdom('<body></body>').window.document;
-    } catch (err) {
-      console.log("import 'jsdom-jscore': " + err);
-    }
+    console.error("server-side rendering not supported yet");
   } else {
     document = self.window.document;
   }

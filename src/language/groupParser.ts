@@ -1,4 +1,5 @@
-import { ParseError } from "katex";
+import katex from "katex";
+const { ParseError } = katex as any;
 import _ from "lodash";
 
 export type TokenTree = string | TokenTree[];

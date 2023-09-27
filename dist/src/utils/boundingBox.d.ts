@@ -1,4 +1,4 @@
-export declare type BoundingBoxProps = {
+export type BoundingBoxProps = {
     top: number;
     bottom: number;
     left: number;

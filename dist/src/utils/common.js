@@ -1,30 +1,23 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.asKaTeXVirtualNode = exports.merge = exports.isWhitespace = exports.mapGroup = exports.isServer = void 0;
-const typescript_1 = require("typescript");
-function isServer() { return typeof window === "undefined"; }
-exports.isServer = isServer;
+import { isWhiteSpaceLike } from 'typescript';
+export function isServer() { return typeof window === "undefined"; }
 // custom group then map for building state map
-function mapGroup(arr, groupFn, mapFn) {
+export function mapGroup(arr, groupFn, mapFn) {
     return arr.reduce((acc, elem, idx, arr) => {
-        var _a;
         let k = groupFn(elem, idx, arr);
-        (_a = acc[k]) !== null && _a !== void 0 ? _a : (acc[k] = []);
+        acc[k] ??= [];
         acc[k].push(mapFn(elem, idx, arr));
         return acc;
     }, {});
 }
-exports.mapGroup = mapGroup;
-function isWhitespace(str) {
-    return str.split("").map(c => c.charCodeAt(0)).every(typescript_1.isWhiteSpaceLike);
+export function isWhitespace(str) {
+    return str.split("").map(c => c.charCodeAt(0)).every(isWhiteSpaceLike);
 }
-exports.isWhitespace = isWhitespace;
 function isObject(obj) {
     return obj === Object(obj) && !Array.isArray(obj);
 }
 // custom merge for merging state map, used during handling wildcards
 // not this modifies dest
-function merge(dest, src, merge_obj_other, merge_others) {
+export function merge(dest, src, merge_obj_other, merge_others) {
     let isDestObj = isObject(dest), isSrcObj = isObject(src);
     if (isDestObj) {
         if (isSrcObj) {
@@ -49,8 +42,7 @@ function merge(dest, src, merge_obj_other, merge_others) {
         return merge_others(dest, src);
     }
 }
-exports.merge = merge;
-function asKaTeXVirtualNode(element) {
+export function asKaTeXVirtualNode(element) {
     return new Proxy(element, {
         get(target, prop, receiver) {
             switch (prop) {
@@ -62,5 +54,4 @@ function asKaTeXVirtualNode(element) {
         },
     });
 }
-exports.asKaTeXVirtualNode = asKaTeXVirtualNode;
 //# sourceMappingURL=common.js.map

@@ -4,7 +4,7 @@ import { KatexOptions } from "katex";
 import { BoundingBox } from '../utils/boundingBox';
 import { resetVisibility, setVisible } from '../utils/visibility';
 import { toHTMLElement } from '../utils/dom';
-import { INSTANCE_DATA_ATTR, SelectorInfo, toSelectorStrings } from '../ffl';
+import { INSTANCE_DATA_ATTR, SelectorInfo, toSelectorStrings } from '../../ffl';
 import { IndexedInstance } from '../language/styleMarkers';
 
 const delimiterInElement = [{
@@ -63,8 +63,14 @@ function drawLabelGroup(labelInfo: {
         foreignObject.appendChild(nodeInfo.labelElement);
         return foreignObject;
     });
-    labels.forEach((node) => labelsOverlay.appendChild(node));
+    labels.forEach((node) => {
+        labelsOverlay.appendChild(node);
+    });
     root.prepend(labelsOverlay);
+
+    labelInfo.forEach((e) => {
+        e.labelElement.style.inlineSize = "max-content";
+    });
 
     let boundingRects = labelInfo.map((info) => {
         var range = document.createRange();
@@ -72,15 +78,19 @@ function drawLabelGroup(labelInfo: {
         return range.getBoundingClientRect();
     });
 
-    const MAX_WIDTH = rootBoundingBox.width * 0.8;
+    const PREFERRED_WIDTH = rootBoundingBox.width * 0.6;
     labelInfo.forEach((e, i) => {
-        let width = boundingRects[i].width <= MAX_WIDTH
-            ? boundingRects[i].width
-            : MAX_WIDTH;
-        e.labelElement.setAttribute("style", `
-            inline-size: fit-content;
-            max-width: ${MAX_WIDTH}px;
-        `)
+        if (boundingRects[i].width <= PREFERRED_WIDTH) {
+            Object.assign(e.labelElement.style, {
+                inlineSize: "max-content",
+                maxWidth: `${PREFERRED_WIDTH}px`
+            });
+        } else {
+            Object.assign(e.labelElement.style, {
+                inlineSize: "fit-content",
+                minWidth: `${PREFERRED_WIDTH}px`
+            });
+        }
     });
 
     boundingRects = labelInfo.map((info) => {
@@ -107,12 +117,12 @@ function drawLabelGroup(labelInfo: {
     renderer.layout(nodes);
 
     var viewBox = BoundingBox.of(...nodes.map((node, idx) => {
-        let bBox: any = boundingRects[idx];
+        // let bBox: any = boundingRects[idx];
         return new BoundingBox({
-            top: node.y! - bBox.height,
-            left: node.x! - bBox.width / 2,
-            bottom: node.y! + bBox.height,
-            right: node.x! + bBox.width / 2,
+            top: node.y!,
+            left: node.x! - node.dx! / 2,
+            bottom: node.y! + node.dy!,
+            right: node.x! + node.dx! / 2,
         });
     }), rootBoundingBox.relativeTo(rootBoundingBox))!;
 
@@ -120,32 +130,28 @@ function drawLabelGroup(labelInfo: {
 
     Object.assign(labelsOverlay.style, {
         position: 'absolute',
-        top: viewBox.top - nodeHeight! / 2 + anchorLineY,
+        top: viewBox.top,
         left: viewBox.left,
         width: viewBox.width,
-        height: viewBox.height + nodeHeight
+        height: viewBox.height + anchorLineY
     });
+    let style = root.getAttribute('style');
+    if (style && !style.endsWith(';')) style += ';';
     if (direction === "up") {
-        let style = root.getAttribute('style');
-        if (style && !style.endsWith(';')) style += ';';
-        root.setAttribute('style', style + ` margin-top: ${-viewBox.top - nodeHeight}px;`);
+        root.setAttribute('style', style + ` margin-top: ${nodeHeight + 16}px;`);
     }
     if (direction === "down") {
-        let style = root.getAttribute('style');
-        if (style && !style.endsWith(';')) style += ';';
-        root.setAttribute('style', style + ` margin-bottom: ${viewBox.height - rootBoundingBox.height + nodeHeight}px;`);
+        root.setAttribute('style', style + ` margin-bottom: ${nodeHeight + 16}px;`);
     }
-
+    console.log(viewBox);
     labelsOverlay.setAttribute('viewBox',
-        `${viewBox.left} ${viewBox.top - nodeHeight / 2 + anchorLineY} ${viewBox.width} ${viewBox.height + nodeHeight / 2}`);
+        `${viewBox.left} ${viewBox.top} ${viewBox.width} ${viewBox.height + anchorLineY}`);
 
     nodes.forEach((node, idx) => {
         labels[idx].setAttribute('overflow', 'visible');
         labels[idx].setAttribute('x', `${node.x! - node.dx! / 2}`);
         labels[idx].setAttribute('width', `${node.dx!}`);
-        labels[idx].setAttribute('dy', `${node.dy!}`);
-        labels[idx].setAttribute('y', `${anchorLineY + node.y! -
-            (direction === 'up' ? boundingRects[idx].height - node.dy! / 2 : node.dy! / 4)}`);
+        labels[idx].setAttribute('y', `${anchorLineY + node.y! + (direction === 'up' ? node.dy! - boundingRects[idx].height : 0)}`);
         labels[idx].setAttribute('height', `${boundingRects[idx].height}`);
         if (direction == 'down') labels[idx].setAttribute('dominant-baseline', `hanging`);
         const rebasedPath = function (x: number, y: number) {
@@ -157,9 +163,9 @@ function drawLabelGroup(labelInfo: {
         let braceY = direction === 'up' ? base + 4 : base - 4;
 
         path.setAttribute('d', rebasedPath(
-            node.data.symbolBoundingBox.center.horizontal + (labelInfo[idx].markerOffset?.x ?? 0),
+            node.data.symbolBoundingBox.center.horizontal,
             base + (labelInfo[idx].markerOffset?.y ?? 0)));
-        path.setAttribute('transform', `translate(0, ${anchorLineY - node.dy! / 4})`);
+        path.setAttribute('transform', `translate(${labelInfo[idx].markerOffset?.x ?? 0}, ${anchorLineY})`);
         Object.assign(path.style, { stroke: 'black', fill: 'none' });
 
         if (labelInfo[idx].labelMarker === 'extent') {
@@ -167,7 +173,7 @@ function drawLabelGroup(labelInfo: {
             brace.setAttribute('d', `M${node.data.symbolBoundingBox.left} ${braceY}
                 V${base} H${node.data.symbolBoundingBox.right} V${braceY}`);
             brace.setAttribute('transform',
-                `translate(${labelInfo[idx].markerOffset?.x ?? 0}, ${anchorLineY - node.dy! / 4 + (labelInfo[idx].markerOffset?.y ?? 0)})`);
+                `translate(${labelInfo[idx].markerOffset?.x ?? 0}, ${anchorLineY + (labelInfo[idx].markerOffset?.y ?? 0)})`);
             Object.assign(brace.style, { stroke: 'black', fill: 'none' });
             labelsOverlay.appendChild(brace);
         }

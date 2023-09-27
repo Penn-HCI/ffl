@@ -1,4 +1,4 @@
-declare type Visibility = {
+type Visibility = {
     display: any;
     visibility: any;
     isConnected: boolean;

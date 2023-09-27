@@ -1,8 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BoundingBox = void 0;
 // DOMRect is read-only, we need something mutable to avoid repeated copying
-class BoundingBox {
+export class BoundingBox {
+    top;
+    bottom;
+    left;
+    right;
+    relativeOrigin;
     constructor(props) {
         this.top = props.top;
         this.bottom = props.bottom;
@@ -43,5 +45,4 @@ class BoundingBox {
         }));
     }
 }
-exports.BoundingBox = BoundingBox;
 //# sourceMappingURL=boundingBox.js.map
