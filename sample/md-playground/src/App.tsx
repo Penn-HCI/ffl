@@ -9,9 +9,7 @@ import Prism from 'prismjs';
 import { GrammarError } from 'peggy';
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import 'prismjs/themes/prism.css';
-import { start } from 'repl';
-declare function require(path: string): any;
-var fflPlugin = require('markdown-it-ffl');
+import fflPlugin from 'markdown-it-ffl';
 
 function App() {
   const [mdSrc, setMdSrc] = useState(`Consider a dataset $D = \\{(x_i ,y_i)\\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\\cdots , x_{iM} )$ is a <span class="feat">feature vector</span> with $M$ features, and $y_i$ is the <span class="target">target</span>, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
@@ -20,30 +18,41 @@ function App() {
 
   This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in <span class="slope">slope terms</span> $\\beta_1$, $\\beta_2$, . . . , $\\beta_M$.
   `);
-  const [fflSrc, setFflSrc] = useState(``);
+  const [fflSrc, setFflSrc] = useState(`
+$y$, *.target { color: red }
+
+$\\beta_0$ {
+  label: intercept;
+}
+
+$\\beta_?$:nth(1) {
+  label: slope term;
+  label-marker: extent;
+}
+
+$x_1$ {
+  background-color: rgba(0,0,0,0.1);
+}`);
   const [vecMode, setVecMode] = useState('arrow');
   var md = MarkdownIt({
     html: true,
     linkify: true,
     typographer: true
   }).use(fflPlugin, {
-    globalStyle: fflSrc,
-    macros: {
-      '\\vec': vecMode === 'bold' ? '\\boldsymbol{#1}' : undefined
-    }
+    globalStyle: fflSrc
   });
   var errMsg: string | undefined, render = React.useRef('');
   var parseTime, renderTime;
   try {
-    // const parseStart = performance.now();
+    const parseStart = performance.now();
     ffl.default.parseFFL(fflSrc);
-    // const parseEnd = performance.now();
-    // parseTime = parseEnd - parseStart;
+    const parseEnd = performance.now();
+    parseTime = parseEnd - parseStart;
     errMsg = undefined;
-    // const renderStart = performance.now();
+    const renderStart = performance.now();
     render.current = md.render(mdSrc);
-    // const renderEnd = performance.now();
-    // renderTime = renderEnd - renderStart;
+    const renderEnd = performance.now();
+    renderTime = renderEnd - renderStart;
   } catch (err) {
     let gErr = err as GrammarError;
     errMsg = `${gErr.location?.start.line}:${gErr.location?.start.column}:${gErr.message}`;

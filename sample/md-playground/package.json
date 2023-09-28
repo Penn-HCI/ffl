@@ -18,32 +18,37 @@
     "@types/prismjs": "^1.26.0",
     "@types/react": "^18.0.21",
     "@types/react-dom": "^18.0.6",
-    "ffl": "github:Penn-HCI/ffl",
+    "autoprefixer": "^9.7.5",
+    "ffl": "../../../ffl-dev",
     "github-markdown-css": "^5.1.0",
     "html-react-parser": "^3.0.4",
     "markdown-it": "^13.0.1",
-    "markdown-it-ffl": "github:wu000168/markdown-it-ffl",
+    "markdown-it-ffl": "../../../markdown-it-ffl",
+    "postcss": "^8.4.30",
+    "postcss-cli": "^7.1.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-loader": "^7.3.3",
     "prismjs": "^1.29.0",
     "react": "^18.2.0",
+    "react-app-rewire-postcss": "^3.0.2",
+    "react-app-rewired": "^2.2.1",
     "react-dom": "^18.2.0",
-    "react-scripts": "^5.0.1",
     "react-simple-code-editor": "^0.13.1",
+    "start": "^5.1.0",
+    "tailwindcss": "^1.8.10",
     "typescript": "^4.8.4",
     "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "react-scripts": "^5.0.1"
   },
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build -e demo -r https://github.com/Penn-HCI/ffl.git -b gh-pages",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   },
   "browserslist": {
     "production": [

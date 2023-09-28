@@ -132,5 +132,6 @@ num = [-.] / digit
 digit = [0-9]
 
 // whitespace
-__ = _* { return null; }
+__ = (_ / comment)* { return null; }
 _ = ' ' / '\t' / '\r' / '\n' / '\v' / '\f' { return null; }
+comment = '/*' (!'*/' .)* '*/' { return null; }
