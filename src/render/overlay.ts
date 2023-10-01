@@ -53,6 +53,7 @@ function drawLabelGroup(labelInfo: {
         y?: number
     }
 }[], root: HTMLElement, rootBoundingBox: BoundingBox, direction?: "up" | "down") {
+    direction ??= "up";
 
     var labelsOverlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let labels = labelInfo.map((nodeInfo) => {
@@ -78,7 +79,7 @@ function drawLabelGroup(labelInfo: {
         return range.getBoundingClientRect();
     });
 
-    const PREFERRED_WIDTH = rootBoundingBox.width * 0.6;
+    const PREFERRED_WIDTH = rootBoundingBox.width * 0.8;
     labelInfo.forEach((e, i) => {
         if (boundingRects[i].width <= PREFERRED_WIDTH) {
             Object.assign(e.labelElement.style, {
@@ -88,7 +89,7 @@ function drawLabelGroup(labelInfo: {
         } else {
             Object.assign(e.labelElement.style, {
                 inlineSize: "fit-content",
-                minWidth: `${PREFERRED_WIDTH}px`
+                // minWidth: `${PREFERRED_WIDTH}px`
             });
         }
     });
@@ -143,7 +144,7 @@ function drawLabelGroup(labelInfo: {
     if (direction === "down") {
         root.setAttribute('style', style + ` margin-bottom: ${nodeHeight + 16}px;`);
     }
-    console.log(viewBox);
+    // console.log(viewBox);
     labelsOverlay.setAttribute('viewBox',
         `${viewBox.left} ${viewBox.top} ${viewBox.width} ${viewBox.height + anchorLineY}`);
 
@@ -207,7 +208,7 @@ export function drawLabels(labels: LabelInfo, root: HTMLElement, scopeKey: strin
             let elements: Element[] = groupByInstance(
                 [...root.querySelectorAll(selector).values()].filter(isVisible), classes
             )[0];
-            console.log(elements);
+            // console.log(elements);
             let labelElement = document.createElement('div');
             switch (label.renderType) {
                 case "html": labelElement.appendChild(toHTMLElement(label.value)); break;

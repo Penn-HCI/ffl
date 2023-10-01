@@ -48,12 +48,11 @@ descendantGroup = global:$('*'?) __ ds:descendantGroup_ {
     return ds;
 }
 
-descendantGroup_ = s:selector { return [s] }
-    / "intersect" ("ion")? '(' __ ss:(selector __ ',' __)+ sse:selector ')' __ {
+descendantGroup_ = "intersect" ("ion")? '(' __ ss:(selector __ ',' __)+ sse:selector ')' __ {
         return [...ss.map((s : any) => s[0]), sse];
-    } / __ ss:(selector __)+ sse:selector __ {
-        return [...ss.map((s : any) => s[0]), sse];
-    }
+    } / __ sse:selector ss:( __ selector )+  __ {
+        return [sse, ...ss.map((s : any) => s[1])];
+    } / s:selector { return [s] }
 
 selector = s:(clazz / literal) ps:pseudoSelector* {
     return {...s, pseudoSelectors : ps }

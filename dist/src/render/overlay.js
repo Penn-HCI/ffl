@@ -40,6 +40,7 @@ const delimiterInElement = [{
         display: true
     }];
 function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
+    direction ??= "up";
     var labelsOverlay = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let labels = labelInfo.map((nodeInfo) => {
         var foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
@@ -61,7 +62,7 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         range.selectNode(info.labelElement);
         return range.getBoundingClientRect();
     });
-    const PREFERRED_WIDTH = rootBoundingBox.width * 0.6;
+    const PREFERRED_WIDTH = rootBoundingBox.width * 0.8;
     labelInfo.forEach((e, i) => {
         if (boundingRects[i].width <= PREFERRED_WIDTH) {
             Object.assign(e.labelElement.style, {
@@ -72,7 +73,7 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
         else {
             Object.assign(e.labelElement.style, {
                 inlineSize: "fit-content",
-                minWidth: `${PREFERRED_WIDTH}px`
+                // minWidth: `${PREFERRED_WIDTH}px`
             });
         }
     });
@@ -118,7 +119,7 @@ function drawLabelGroup(labelInfo, root, rootBoundingBox, direction) {
     if (direction === "down") {
         root.setAttribute('style', style + ` margin-bottom: ${nodeHeight + 16}px;`);
     }
-    console.log(viewBox);
+    // console.log(viewBox);
     labelsOverlay.setAttribute('viewBox', `${viewBox.left} ${viewBox.top} ${viewBox.width} ${viewBox.height + anchorLineY}`);
     nodes.forEach((node, idx) => {
         labels[idx].setAttribute('overflow', 'visible');
@@ -160,7 +161,7 @@ export function drawLabels(labels, root, scopeKey) {
             label, labelPosition, labelMarker, markerOffset
         }))).map(({ selector, classes, label, labelPosition, labelMarker, markerOffset }) => {
             let elements = groupByInstance([...root.querySelectorAll(selector).values()].filter(isVisible), classes)[0];
-            console.log(elements);
+            // console.log(elements);
             let labelElement = document.createElement('div');
             switch (label.renderType) {
                 case "html":
