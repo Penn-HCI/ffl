@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>FFL - Getting Started</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Zhiyuan Wu, Jiening Li, Kevin Ma, Hita Kambhamettu, Andrew Head">
+    <meta name="description" content="A Language and Live Runtime for Styling and Labeling Typeset Math Formulas">
+    <link rel="canonical" href="https://penn-hci.github.io/ffl/getting-started">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+        integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+    <link href="sidebars.css" rel="stylesheet">
+    <link href="prism.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+        integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- The loading of KaTeX is deferred to speed up page rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+        integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+        crossorigin="anonymous"></script>
+    <!-- To automatically render math in text elements, include the auto-render extension: -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous">
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
+        });
+    </script>
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1114.0" data-gr-ext-installed="" style="overflow: hidden;  width: 100vw;">
+    <div class="flex-row d-md-flex" style="overflow-y: hidden;">
+        <div class="col-md-2 p-3 shadow position-sticky" nav-root style="min-width: 280px;">
+        </div>
+        <script src="sidebars.js"></script>
+        <!-- <div class="vr" style="padding: 0;"></div> -->
+        <main class="p-5" style="overflow-y: scroll; flex: 1; justify-content: center;">
+            <div class="col-lg-10 mx-auto">
+                <h2>Tutorial: Linear Regression</h2>
+                <p class="text-muted">FFL is designed to help authors augment formulas with a light-weight syntax and
+                    live feedback. Here, we showcase some examples of basic features of FFL.</p>
+                <p>For this tutorial, we will work on the below excerpt from <a
+                        href="https://fredhohman.com/papers/gamut" class="link-underline link-underline-opacity-25"
+                        target="_blank">Gamut: A Design Probe to Understand How Data Scientists Understand Machine Learning Models</a> by <a href="https://fredhohman.com/"
+                        class="link-underline link-underline-opacity-25" target="_blank">Hohman</a> et al.
+                    This is also the same example we used in our paper.</p>
+                <div markdown-root>Consider a dataset $D = \{(x_i ,y_i)\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\cdots, x_{iM} )$ is a feature vector with $M$ features, and $y_i$ is the target, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
+
+$$ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_M x_M $$
+
+This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in slope terms $\beta_1$, $\beta_2$, . . . , $\beta_M$.</div>
+                <h3>Anatomy of FFL</h3>
+                <p>An FFL rule is a lot like a CSS rule&mdash;it consists of a selector and a style block. The selector
+                    "selects" parts of a formula you want to style and the following block contains a
+                    semicolon-separated list of properties specifying the style.</p>
+                <p>For example, <code class="language-css">$y$ { color: red }</code> means to select all \(y\)'s in
+                    formulas and color them red. Here, <code><span class="token selector">$y$</span></code> is
+                    a <i>literal</i> selector and <code class="language-css">
+                        <span class="token punctuation">{</span> <span class="token property">color</span><span class="token punctuation">:</span> red <span class="token punctuation">}</span>
+                    </code> is the style block consisting of a single property
+                    <code><span class="token property" style="font-size: 16px;">color</span></code>.
+                </p>
+                <div markdown-root ffl-style="/* try editing the code below! */
+$y$ {
+  color: red;
+}">Consider a dataset $D = \{(x_i ,y_i)\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\cdots,x_{iM} )$ is a feature vector with $M$ features, and $y_i$ is the target, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
+
+$$ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_M x_M $$
+
+This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in slope terms $\beta_1$, $\beta_2$, . . . ,$\beta_M$.</div>
+                <h3>Selectors</h3>
+                <p>So far, we have already seen <i>literal selectors</i> which selects parts of formulas directly corresponding
+                to its content. In addition to literal selectors, FFL also supports a few other ways of selecting elements.
+                To see the full list of supported selectors, navigate to <a href="basic-selectors">Selectors</a> on the side bar.
+                Here we will cover a few that you might find useful.</p>
+                <h4>CSS Classes</h4>
+                <p>Oftentimes you might want to style some surrounding text along with parts of the formula to make some
+                    connections between them. FFL doesn't directly support styling of texts, but you can mix in some simple
+                    CSS selectors <span class="text-muted">(currently only class selectors are supported)</span> alongside FFL. By default, the scope of FFL selectors are
+                    limited to formulas. To select outside of formulas, you simply prepend a <code>*</code> in front.
+                    For example, <code class="language-html">&lt;span class="target"&gt;target&lt;/span&gt;</code> here is selected by the global selector
+                    <code><span class="token selector">*.target</span></code>.</p>
+                </p>  
+                    <div markdown-root expand ffl-style="$y$, *.target {
+  color: red;
+}">Consider a dataset $D = \{(x_i ,y_i)\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\cdots,x_{iM} )$ is a feature vector with $M$ features, and $y_i$ is the <span class="target">target</span>, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
+
+$$ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_M x_M $$
+
+This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in slope terms $\beta_1$, $\beta_2$, . . . ,$\beta_M$.</div>
+                <h4>Wildcards/Globbing</h4>
+                <p>One of the core features of FFL is the ability to make cross-cutting changes. This includes the ability to select related elements in with wildcard matching.
+                    Literal selectors in FFL support <i>wildcards</i> <code>*</code> and <code>?</code> analogous to Unix glob patterns.
+                    In other words, <code>?</code> matches a single token and <code>*</code> matches zero or more tokens (bounded by <code>{&hellip;}</code> groups).
+                </p>
+                <p>For instance, you might have noticed that the selector <code><span class="token selector">$y$</span></code> didn't include subscripts.
+                    This might be fine for \(y_i\)'s but it certainly would be cumbersome to select each \(x_i\)'s one by one.
+                    Instead, the alternative is to use the wildcards to match all subscripts.
+                </p>
+                <div markdown-root ffl-style="$y$, $y_?$, *.targ {
+  color: red;
+}
+
+$x_*$, *.feat {
+  color: DodgerBlue;
+}">Consider a dataset $D = \{(x_i ,y_i)\}^N$ of $N$ data points, where $x_i = (x_{i1}, x_{i2},\cdots,x_{iM} )$ is a <span class="feat">feature vector</span> with $M$ features, and $y_i$ is the <span class="targ">target</span>, i.e., the response, variable. Let $x_j$ denote the $j$th variable in feature space. A typical linear regression model can then be expressed mathematically as:
+
+$$ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_M x_M $$
+
+This model assumes that the relationships between the target variable $y_i$ and features $x_j$ are linear and can be captured in slope terms $\beta_1$, $\beta_2$, . . . ,$\beta_M$.</div>
+                <h3>Style Properties</h3>
+                <p>Many CSS styles work out of the box, among which the most common is <code><span class="token property">color</span></code>,
+                    which we have already seen above.
+                    For more on supported properties, navigate to <a href="basic-styles">Style Properties</a> on the side bar.
+                    FFL also supports a few additional properties that are specific to math formulas, 
+                    the primary among which is <code><span class="token property">label</span></code>.
+                </p>
+                <h4>Labels</h4>
+                <p>Of course, colors are not the only way to grab your readers' attention. We find this common enough that
+                    adding a label to an element in FFL is as simple as adding a <code><span class="token property">label</span></code> property.
+                    Labels are automatically placed wherever there is room. For options to customize labels, read more at <a href="additional-styles#labels">Additional Styles</a>.
+                </p>
+                <div latex-root show-open ffl-style="$y$ { label: target }
+$\beta_0$ { label: intercept }
+$\beta_?$:nth(1) { label: slope term }
+$x_1$ {
+  label: feature;
+  label-position: below
+}
+$M$ { label: # of features }"> y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_M x_M </div>
+                <h2>Summary</h2>
+                <p>To use FFL to style formulas, you can write CSS-like style rules consisting of selectors and declaration blocks.
+                    FFL supports a variety of selectors and style properties. For more details, check out more pages on the side bar.
+                </p>
+            </div>
+            <p style="margin-bottom: 12em;"></p>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <script type="module" src="src/main.tsx"></script>
+    <script src="prism.js"></script>
+</body>
+
+</html>

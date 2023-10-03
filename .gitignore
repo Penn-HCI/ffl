@@ -130,3 +130,5 @@ out
 .pnp.*
 
 .clang-format
+
+bun.lockb

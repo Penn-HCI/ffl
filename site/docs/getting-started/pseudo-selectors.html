@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>FFL - Getting Started</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Zhiyuan Wu, Jiening Li, Kevin Ma, Hita Kambhamettu, Andrew Head">
+    <meta name="description" content="A Language and Live Runtime for Styling and Labeling Typeset Math Formulas">
+    <link rel="canonical" href="https://penn-hci.github.io/ffl/getting-started">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+        integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
+    <link href="sidebars.css" rel="stylesheet">
+    <link href="prism.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+        integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- The loading of KaTeX is deferred to speed up page rendering -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"
+        integrity="sha384-cpW21h6RZv/phavutF+AuVYrr+dA8xD9zs6FwLpaCct6O9ctzYFfFr4dgmgccOTx"
+        crossorigin="anonymous"></script>
+    <!-- To automatically render math in text elements, include the auto-render extension: -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
+        integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous">
+        </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
+        });
+    </script>
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1114.0" data-gr-ext-installed="" style="width: 100%; overflow: hidden;">
+    <div class="flex-row d-md-flex" style="overflow-y: hidden; width: 100vw;">
+        <div class="col-md-2 p-3 shadow position-sticky" nav-root style="min-width: 280px;">
+        </div>
+        <script src="sidebars.js"></script>
+        <!-- <div class="vr" style="padding: 0;"></div> -->
+        <main class="p-5" style="overflow-y: scroll; flex: 1; justify-content: center;">
+            <div class="col-lg-10 mx-auto">
+                <h2>Pseudo-Selectors</h2>
+                <p>FFL currently only offers one single pseudo-selector.
+                </p>
+                <h3><code>:nth(&hellip;)</code> Selector</h3>
+                <p>For most non-CSS selectors in FFL, it is possible to specify the occurrence
+                    of the selector in the formula. For example, <code>$x$:nth(0)</code> matches the first
+                    occurrence of \(x\) in the formula and <code>$x$:nth(1)</code> matches the second occurrence.
+                    Note that the index is currently zero-based, this might change in the future.
+                </p>
+                <div latex-root ffl-style="$x$:nth(0) { color: red }
+$x$:nth(1) { color: blue }"> y=ax^2+bx+c </div>
+                <p>This is often useful with <code>.group</code> selector, which selects parts of your formula
+                    surrounded in double curly braces (<code>{&hellip;}</code>).
+                </p>
+                <div latex-root expand ffl-style=".group:nth(1) { color: red }
+$a$.group:nth(2) { color: blue }"> a{{b}}{{a}} </div>
+                <p>Note that <code>.group:nth(0)</code> means the global group, which is the entire formula,
+                    so <code>.group</code> isn't usually useful on its own. (This might change and <code>.group</code>
+                    indices might become 1-based.)
+                    And using the intersection selector together the <code>:nth</code> selector is currently undefined,
+                        although you can usually expect it to attach to the adjacent basic selector.
+                </p>
+            </div>
+            <p style="margin-bottom: 12em;"></p>
+        </main>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <script type="module" src="src/main.tsx"></script>
+    <script src="prism.js"></script>
+</body>
+
+</html>

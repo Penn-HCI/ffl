@@ -103,7 +103,7 @@
   "exclude": [
     "**/webpack.config.js",
     "node_modules",
-    "doc",
+    "site",
     "dist",
     "sample"
   ]

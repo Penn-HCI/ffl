@@ -1,0 +1,48 @@
+{
+  "name": "md-playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "prepublish": "npm run build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist -e demo-dev -r https://github.com/Penn-HCI/ffl.git -b gh-pages"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.9",
+    "@mui/material": "^5.14.10",
+    "@rollup/plugin-commonjs": "^25.0.4",
+    "@types/markdown-it": "^13.0.1",
+    "@types/prismjs": "^1.26.0",
+    "ffl": "../..",
+    "gh-pages": "^6.0.0",
+    "github-markdown-css": "^5.2.0",
+    "markdown-it": "^13.0.1",
+    "markdown-it-ffl": "https://github.com/wu000168/markdown-it-ffl",
+    "peggy": "^3.0.2",
+    "prismjs": "^1.29.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.16.0",
+    "react-simple-code-editor": "^0.13.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react-swc": "^3.3.2",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5"
+  }
+}

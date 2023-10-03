@@ -1,0 +1,24 @@
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+textarea.npm__react-simple-code-editor__textarea {
+  border: none;
+  overflow: auto;
+  outline: none;
+
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+
+  resize: none;
+  border-radius: 0;
+  border-style: none;
+  border-color: Transparent;
+
+  outline-width: 0;
+}

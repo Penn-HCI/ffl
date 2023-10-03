@@ -1,0 +1,67 @@
+{
+  "name": "md-playground",
+  "version": "0.1.0",
+  "private": false,
+  "homepage": "https://Penn-HCI.github.io/ffl/demo",
+  "dependencies": {
+    "@emotion/react": "^11.10.4",
+    "@emotion/styled": "^11.10.4",
+    "@mui/icons-material": "^5.11.16",
+    "@mui/joy": "^5.0.0-alpha.49",
+    "@mui/material": "^5.10.9",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/markdown-it": "^12.2.3",
+    "@types/node": "^16.11.65",
+    "@types/prismjs": "^1.26.0",
+    "@types/react": "^18.0.21",
+    "@types/react-dom": "^18.0.6",
+    "autoprefixer": "^9.7.5",
+    "ffl": "file:../..",
+    "github-markdown-css": "^5.1.0",
+    "html-react-parser": "^3.0.4",
+    "markdown-it": "^13.0.1",
+    "markdown-it-ffl": "https://github.com/wu000168/markdown-it-ffl",
+    "peggy": "^3.0.2",
+    "postcss": "^8.4.30",
+    "postcss-cli": "^7.1.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-loader": "^7.3.3",
+    "prismjs": "^1.29.0",
+    "react": "^18.2.0",
+    "react-app-rewire-postcss": "^3.0.2",
+    "react-app-rewired": "^2.2.1",
+    "react-dom": "^18.2.0",
+    "react-simple-code-editor": "^0.13.1",
+    "start": "^5.1.0",
+    "tailwindcss": "^1.8.10",
+    "ts-pegjs": "^4.2.1",
+    "typescript": "^4.8.4",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "react-scripts": "^5.0.1"
+  },
+  "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build -e demo -r https://github.com/Penn-HCI/ffl.git -b gh-pages",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
