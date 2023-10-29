@@ -39,7 +39,7 @@
             });
         });
     </script>
-  <script type="module" crossorigin src="/ffl/getting-started/assets/main-8de284e7.js"></script>
+  <script type="module" crossorigin src="/ffl/getting-started/assets/main-fe0749a6.js"></script>
   <link rel="stylesheet" href="/ffl/getting-started/assets/main-069b2170.css">
 </head>
 
@@ -87,6 +87,10 @@ $x_?$ { color: purple; }"> y_{\text{target}} = \beta_0 + \beta_1 x_1 + \beta_2 x
                     prepending an asterisk (<code>*</code>) to the class name to apply to the rest of the document.
                 </p>
                 <div markdown-root expand ffl-style="*.class0 { color: red }">This is a passage with <span class="class0">some $\LaTeX$ formulas</span>&hellip;</div>
+                <p class="text-muted">While currently support for CSS selectors is limited, the grammar of FFL does allow
+                    the opportunity to extend the language to support more complex selectors in the future. This might also
+                    allow support for more integration with other tooling.
+                </p>
                 <p class="text-muted">Note that for now, there needs to be at least some formula in the rendered passage for the CSS
                     styles to be applied. You can not write only CSS in FFL.
                 </p>
